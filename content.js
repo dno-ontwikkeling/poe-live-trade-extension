@@ -1,7 +1,5 @@
-// Content script that monitors alerts and clicks the hideout button
-console.log('[POE Extension] Content script file executing...')
-
-// Prevent duplicate execution
+// Content script that monitors intercepted notifications and clicks the
+// "Travel to hideout" button.
 if (window.__POE_CONTENT_SCRIPT_LOADED) {
   console.log('[POE Extension] Content script already loaded, skipping...')
 } else {
@@ -10,470 +8,279 @@ if (window.__POE_CONTENT_SCRIPT_LOADED) {
   ;(function () {
     'use strict'
 
-    console.log('[POE Extension] Content script IIFE started')
+    const DEBUG = false
+    const BUTTON_TIMEOUT = 4000 // give the button up to 4s to appear
+    const MAX_ALERTS = 20
+
+    const log = (...args) => {
+      if (DEBUG) console.log('[POE Extension]', ...args)
+    }
 
     let extensionEnabled = true // Enabled by default when injected
     let autoClickEnabled = false // Auto-click DISABLED by default on startup
     let alertLog = []
-    let currentTabId = null
 
-    // Get current tab ID and load auto-click state from local storage
-    chrome.runtime.sendMessage({ type: 'getTabId' }, response => {
-      if (response && response.tabId) {
-        currentTabId = response.tabId
-        try {
-          chrome.storage.local.get([`autoClick_${currentTabId}`], result => {
-            if (chrome.runtime.lastError) {
-              console.log(
-                '[POE Extension] Could not access local storage:',
-                chrome.runtime.lastError.message
-              )
-              return
-            }
-            if (result) {
-              const savedState = result[`autoClick_${currentTabId}`]
-              if (savedState !== undefined) {
-                autoClickEnabled = savedState
-                console.log(
-                  '[POE Extension] Loaded auto-click state from storage:',
-                  autoClickEnabled
-                )
-              }
-            }
-          })
-        } catch (error) {
-          console.log('[POE Extension] Storage access error:', error)
-        }
+    // Send a message to the background worker, swallowing errors that happen
+    // when the extension has been reloaded and the context is invalidated.
+    function sendBg (message, callback) {
+      try {
+        chrome.runtime.sendMessage(message, response => {
+          if (chrome.runtime.lastError) {
+            log('sendMessage error:', chrome.runtime.lastError.message)
+            return
+          }
+          if (callback) callback(response)
+        })
+      } catch (error) {
+        log('Could not send message (extension may have been reloaded):', error)
+      }
+    }
+
+    // Load the global auto-click state from the background worker.
+    sendBg({ type: 'getAutoClickState' }, response => {
+      if (response && typeof response.enabled === 'boolean') {
+        autoClickEnabled = response.enabled
+        log('Loaded auto-click state:', autoClickEnabled)
       }
     })
 
     // Listen for messages from background/popup
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-      if (request.action === 'ping') {
-        // Respond to ping to indicate content script is loaded
-        sendResponse({ alive: true })
-      } else if (request.action === 'showConfirmationNotification') {
-        // Show confirmation notification on this tab
-        showConfirmationNotification()
-        sendResponse({ success: true })
-      } else if (request.action === 'closeConfirmationNotification') {
-        // Close confirmation notification on this tab
-        closeConfirmationNotification()
-        sendResponse({ success: true })
-      } else if (request.action === 'enableExtension') {
-        extensionEnabled = true
-        console.log('[POE Extension] Extension enabled')
-
-        // Re-enable notification interception in page context
-        window.postMessage({ type: 'POE_ENABLE_INTERCEPTION' }, '*')
-
-        sendResponse({ success: true })
-      } else if (request.action === 'disableExtension') {
-        extensionEnabled = false
-        autoClickEnabled = false
-        console.log('[POE Extension] Extension disabled')
-
-        // Disable notification interception in page context
-        window.postMessage({ type: 'POE_DISABLE_INTERCEPTION' }, '*')
-
-        // Save disabled state to local storage
-        if (currentTabId) {
-          try {
-            const state = {}
-            state[`autoClick_${currentTabId}`] = false
-            chrome.storage.local.set(state, () => {
-              if (chrome.runtime.lastError) {
-                console.log(
-                  '[POE Extension] Could not save to local storage:',
-                  chrome.runtime.lastError.message
-                )
-              }
-            })
-          } catch (error) {
-            console.log('[POE Extension] Storage access error:', error)
-          }
-        }
-
-        sendResponse({ success: true })
-      } else if (request.action === 'enableAutoClick') {
-        autoClickEnabled = true
-        console.log('[POE Extension] Auto-click re-enabled')
-
-        // Save state to local storage
-        if (currentTabId) {
-          try {
-            const state = {}
-            state[`autoClick_${currentTabId}`] = true
-            chrome.storage.local.set(state, () => {
-              if (chrome.runtime.lastError) {
-                console.log(
-                  '[POE Extension] Could not save to local storage:',
-                  chrome.runtime.lastError.message
-                )
-              }
-            })
-          } catch (error) {
-            console.log('[POE Extension] Storage access error:', error)
-          }
-        }
-
-        sendResponse({ success: true })
-      } else if (request.action === 'disableAutoClick') {
-        autoClickEnabled = false
-        console.log('[POE Extension] Auto-click disabled')
-
-        // Save state to local storage
-        if (currentTabId) {
-          try {
-            const state = {}
-            state[`autoClick_${currentTabId}`] = false
-            chrome.storage.local.set(state, () => {
-              if (chrome.runtime.lastError) {
-                console.log(
-                  '[POE Extension] Could not save to local storage:',
-                  chrome.runtime.lastError.message
-                )
-              }
-            })
-          } catch (error) {
-            console.log('[POE Extension] Storage access error:', error)
-          }
-        }
-
-        sendResponse({ success: true })
-      } else if (request.action === 'getAlertLog') {
-        sendResponse({ alerts: alertLog })
-      } else if (request.action === 'clearAlertLog') {
-        alertLog = []
-        sendResponse({ success: true })
+      switch (request.action) {
+        case 'ping':
+          sendResponse({ alive: true })
+          break
+        case 'showConfirmationNotification':
+          showConfirmationNotification()
+          sendResponse({ success: true })
+          break
+        case 'closeConfirmationNotification':
+          closeConfirmationNotification()
+          sendResponse({ success: true })
+          break
+        case 'enableExtension':
+          extensionEnabled = true
+          window.postMessage({ type: 'POE_ENABLE_INTERCEPTION' }, '*')
+          sendResponse({ success: true })
+          break
+        case 'disableExtension':
+          extensionEnabled = false
+          autoClickEnabled = false
+          window.postMessage({ type: 'POE_DISABLE_INTERCEPTION' }, '*')
+          sendResponse({ success: true })
+          break
+        case 'enableAutoClick':
+          autoClickEnabled = true
+          sendResponse({ success: true })
+          break
+        case 'disableAutoClick':
+          autoClickEnabled = false
+          sendResponse({ success: true })
+          break
+        case 'getAlertLog':
+          sendResponse({ alerts: alertLog })
+          break
+        case 'clearAlertLog':
+          alertLog = []
+          sendResponse({ success: true })
+          break
+        default:
+          sendResponse({ success: false })
       }
-      return true
+      // All responses are synchronous; no need to keep the channel open.
+      return false
     })
 
-    // Inject script into page context to intercept Notification
-    // Note: This is now handled by popup.js using chrome.scripting.executeScript with world: 'MAIN'
-    // No need to manually inject here anymore
-
-    // Listen for messages from page context
+    // Listen for messages from the page context (inject.js)
     window.addEventListener('message', event => {
       if (event.source !== window) return
-
-      console.log('[POE Extension] Message received:', event.data.type)
-
-      if (event.data.type === 'POE_NOTIFICATION_INTERCEPTED') {
+      if (event.data && event.data.type === 'POE_NOTIFICATION_INTERCEPTED') {
         handleInterceptedNotification(event.data.title, event.data.options)
       }
     })
 
     function handleInterceptedNotification (title, options) {
-      console.log(
-        '[POE Extension] Notification intercepted in content script:',
-        title,
-        options
-      )
+      log('Notification intercepted:', title, options)
 
       const message =
         title + (options && options.body ? ' - ' + options.body : '')
       const alertEntry = {
         timestamp: new Date().toISOString(),
-        message: message,
+        message,
         action: 'intercepted'
       }
 
       alertLog.push(alertEntry)
-      if (alertLog.length > 5) {
-        alertLog.shift()
+      while (alertLog.length > MAX_ALERTS) alertLog.shift()
+
+      sendBg({ type: 'alertIntercepted', alert: alertEntry })
+
+      if (!extensionEnabled) {
+        log('Extension disabled, ignoring notification')
+        return
       }
 
-      // Send message with error handling for invalidated context
-      try {
-        chrome.runtime.sendMessage({
-          type: 'alertIntercepted',
-          alert: alertEntry
-        })
-      } catch (error) {
-        console.log(
-          '[POE Extension] Could not send message (extension may have been reloaded):',
-          error
-        )
+      if (!autoClickEnabled) {
+        log('Auto-click disabled, not clicking')
+        alertEntry.action = 'auto_click_disabled'
+        sendBg({ type: 'alertUpdated', alert: alertEntry })
+        return
       }
 
-      if (extensionEnabled) {
-        if (autoClickEnabled) {
-          console.log(
-            '[POE Extension] Auto-click is enabled, disabling it and starting to poll for hideout button...'
-          )
+      // Disable auto-click first so a single alert triggers a single click,
+      // and persist it globally so other tabs stop too.
+      autoClickEnabled = false
+      sendBg({ type: 'autoClickDisabled' })
 
-          // Disable auto-click FIRST
-          autoClickEnabled = false
-
-          // Save disabled state to local storage
-          if (currentTabId) {
-            try {
-              const state = {}
-              state[`autoClick_${currentTabId}`] = false
-              chrome.storage.local.set(state, () => {
-                if (chrome.runtime.lastError) {
-                  console.log(
-                    '[POE Extension] Could not save to local storage:',
-                    chrome.runtime.lastError.message
-                  )
-                }
-              })
-            } catch (error) {
-              console.log('[POE Extension] Storage access error:', error)
-            }
-          }
-
-          // Notify that auto-click was disabled
-          try {
-            chrome.runtime.sendMessage({ type: 'autoClickDisabled' })
-          } catch (error) {
-            console.log('[POE Extension] Could not send message:', error)
-          }
-
-          // Start polling for hideout button
-          pollForHideoutButton(alertEntry)
-        } else {
-          console.log(
-            '[POE Extension] Auto-click is disabled, not clicking button...'
-          )
-          alertEntry.action = 'auto_click_disabled'
-          
-          try {
-            chrome.runtime.sendMessage({
-              type: 'alertUpdated',
-              alert: alertEntry
-            })
-          } catch (error) {
-            console.log('[POE Extension] Could not send message:', error)
-          }
-        }
-      } else {
-        console.log(
-          '[POE Extension] Extension is disabled, ignoring notification'
-        )
-      }
+      startHideoutFlow(alertEntry)
     }
 
-    // Function to poll for and click the "Travel to hideout" button
-    function pollForHideoutButton (alertEntry) {
-      const startTime = Date.now()
-      const timeout = 4000 // 4 seconds
-      const pollInterval = 20 // 20ms
-      
-      const poll = () => {
-        const elapsed = Date.now() - startTime
-        
-        if (elapsed >= timeout) {
-          console.log('[POE Extension] Timeout reached while polling for hideout button')
-          alertEntry.action = 'button_not_found'
-          
-          try {
-            chrome.runtime.sendMessage({
-              type: 'alertUpdated',
-              alert: alertEntry
-            })
-          } catch (error) {
-            console.log('[POE Extension] Could not send message:', error)
-          }
-          return
+    // Wait for a button matching `matches` to appear, then click it. Uses a
+    // MutationObserver instead of tight polling. Falls back to `onTimeout`
+    // after BUTTON_TIMEOUT ms.
+    function waitForButton (matches, onFound, onTimeout) {
+      if (clickMatchingButton(matches)) {
+        onFound()
+        return
+      }
+
+      let settled = false
+      const finish = found => {
+        if (settled) return
+        settled = true
+        observer.disconnect()
+        clearTimeout(timer)
+        if (found) onFound()
+        else if (onTimeout) onTimeout()
+      }
+
+      const observer = new MutationObserver(() => {
+        if (clickMatchingButton(matches)) finish(true)
+      })
+      observer.observe(document.body, { childList: true, subtree: true })
+
+      const timer = setTimeout(() => finish(false), BUTTON_TIMEOUT)
+    }
+
+    // Find the first visible, enabled clickable element whose text matches,
+    // click it, and report whether a click happened.
+    function clickMatchingButton (matches) {
+      const elements = document.querySelectorAll(
+        'button, a, input[type="button"], input[type="submit"]'
+      )
+
+      for (const el of elements) {
+        const text = (el.textContent || el.value || '').trim().toLowerCase()
+        if (!matches(text)) continue
+        if (el.disabled || el.offsetParent === null) {
+          log('Matching button found but disabled or hidden')
+          continue
         }
-        
-        const buttonClicked = findAndClickHideoutButton()
-        
-        if (!buttonClicked) {
-          // Button not found or clicked, continue polling
-          setTimeout(poll, pollInterval)
-        } else {
-          console.log('[POE Extension] Successfully clicked hideout button, stopping poll')
+        el.click()
+        log('Clicked button:', text)
+        return true
+      }
+      return false
+    }
+
+    // Match only the actual "Travel to hideout" button, not any element that
+    // merely mentions the word "hideout".
+    const isHideoutButton = text => text.includes('travel to hideout')
+    const isTeleportButton = text =>
+      text.includes('teleport anyway') || text.includes('in demand')
+
+    function startHideoutFlow (alertEntry) {
+      waitForButton(
+        isHideoutButton,
+        () => {
           alertEntry.action = 'button_clicked'
+          sendBg({ type: 'showConfirmationOnAllTabs' })
+          sendBg({ type: 'alertUpdated', alert: alertEntry })
 
-          // Notify background to show confirmation on all tabs
-          console.log('[POE Extension] Sending showConfirmationOnAllTabs message')
-          try {
-            chrome.runtime.sendMessage({
-              type: 'showConfirmationOnAllTabs',
-              tabId: currentTabId
-            })
-            console.log('[POE Extension] showConfirmationOnAllTabs message sent successfully')
-          } catch (error) {
-            console.log('[POE Extension] Could not send showConfirmationOnAllTabs message:', error)
-          }
-          
-          try {
-            chrome.runtime.sendMessage({
-              type: 'alertUpdated',
-              alert: alertEntry
-            })
-          } catch (error) {
-            console.log('[POE Extension] Could not send message:', error)
-          }
-          
-          // Poll for the "In demand. Teleport anyway?" button with 4 second timeout
-          pollForTeleportAnywayButton()
+          // After the hideout click, handle the "In demand. Teleport anyway?"
+          // confirmation if it shows up.
+          waitForButton(isTeleportButton, () => {}, () => {})
+        },
+        () => {
+          log('Timeout waiting for hideout button')
+          alertEntry.action = 'button_not_found'
+          sendBg({ type: 'alertUpdated', alert: alertEntry })
         }
-      }
-      
-      // Start polling
-      poll()
-    }
-
-    // Function to find and click the "Travel to hideout" button
-    function findAndClickHideoutButton () {
-      // Look for buttons with text "Travel to hideout" or similar
-      const buttons = document.querySelectorAll(
-        'button, a, input[type="button"], input[type="submit"]'
       )
-
-      for (const button of buttons) {
-        const text = button.textContent || button.value || ''
-        if (
-          text.toLowerCase().includes('travel to hideout') ||
-          text.toLowerCase().includes('hideout')
-        ) {
-          console.log('[POE Extension] Found hideout button:', button)
-
-          // Check if button is enabled
-          if (!button.disabled && button.offsetParent !== null) {
-            // Click the button once
-            button.click()
-            console.log('[POE Extension] Clicked hideout button')
-            return true
-          } else {
-            console.log('[POE Extension] Button found but disabled or hidden')
-          }
-        }
-      }
-
-      return false
     }
 
-    // Function to poll for and click the "In demand. Teleport anyway?" button
-    function pollForTeleportAnywayButton () {
-      const startTime = Date.now()
-      const timeout = 4000 // 4 seconds
-      const pollInterval = 20 // 20ms
-      
-      const poll = () => {
-        const elapsed = Date.now() - startTime
-        
-        if (elapsed >= timeout) {
-          console.log('[POE Extension] Timeout reached while polling for "Teleport anyway" button')
-          return
-        }
-        
-        const buttonClicked = findAndClickTeleportAnywayButton()
-        
-        if (!buttonClicked) {
-          // Button not found or clicked, continue polling
-          setTimeout(poll, pollInterval)
-        } else {
-          console.log('[POE Extension] Successfully clicked "Teleport anyway" button, stopping poll')
-        }
-      }
-      
-      // Start polling
-      poll()
-    }
-
-    // Function to find and click the "In demand. Teleport anyway?" button
-    function findAndClickTeleportAnywayButton () {
-      const buttons = document.querySelectorAll(
-        'button, a, input[type="button"], input[type="submit"]'
-      )
-
-      for (const button of buttons) {
-        const text = button.textContent || button.value || ''
-        if (
-          text.toLowerCase().includes('in demand') ||
-          text.toLowerCase().includes('teleport anyway')
-        ) {
-          console.log('[POE Extension] Found "Teleport anyway" button:', button)
-
-          // Check if button is enabled
-          if (!button.disabled && button.offsetParent !== null) {
-            // Click the button
-            button.click()
-            console.log('[POE Extension] Clicked "Teleport anyway" button')
-            return true
-          } else {
-            console.log('[POE Extension] "Teleport anyway" button found but disabled or hidden')
-          }
-        }
-      }
-
-      return false
-    }
-
-    // Function to close the confirmation notification
+    // Close the on-page confirmation notification
     function closeConfirmationNotification () {
       const notification = document.getElementById('poe-extension-notification')
       if (notification) {
-        notification.style.animation = 'slideOut 0.3s ease-out'
+        notification.style.animation = 'poeSlideOut 0.28s ease-out forwards'
         setTimeout(() => notification.remove(), 300)
-        console.log('[POE Extension] Notification closed')
       }
     }
 
-    // Function to show on-page confirmation notification
+    // Show on-page confirmation notification after an auto-click
     function showConfirmationNotification () {
-      // Remove any existing notification
-      const existingNotification = document.getElementById('poe-extension-notification')
-      if (existingNotification) {
-        existingNotification.remove()
-      }
+      const existing = document.getElementById('poe-extension-notification')
+      if (existing) existing.remove()
 
-      // Create notification element
       const notification = document.createElement('div')
       notification.id = 'poe-extension-notification'
       notification.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
-        background: #4a5568;
-        color: white;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        z-index: 999999;
+        background: linear-gradient(180deg, #1e2126 0%, #16181c 100%);
+        color: #e8e9ec;
+        padding: 18px 20px 20px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+        z-index: 2147483647;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        min-width: 300px;
-        max-width: 400px;
-        animation: slideIn 0.3s ease-out;
+        line-height: 1.5;
+        min-width: 320px;
+        max-width: 380px;
+        animation: poeSlideIn 0.28s cubic-bezier(0.4, 0, 0.2, 1);
       `
 
       notification.innerHTML = `
         <style>
-          @keyframes slideIn {
-            from {
-              transform: translateX(400px);
-              opacity: 0;
-            }
-            to {
-              transform: translateX(0);
-              opacity: 1;
-            }
+          @keyframes poeSlideIn {
+            from { transform: translateX(420px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
           }
-          @keyframes slideOut {
-            from {
-              transform: translateX(0);
-              opacity: 1;
-            }
-            to {
-              transform: translateX(400px);
-              opacity: 0;
-            }
+          @keyframes poeSlideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(420px); opacity: 0; }
+          }
+          #poe-extension-notification * { box-sizing: border-box; }
+          #poe-extension-notification .poe-head {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            margin-bottom: 10px;
+          }
+          #poe-extension-notification .poe-check {
+            flex-shrink: 0;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: rgba(34, 197, 94, 0.16);
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
           #poe-extension-notification h3 {
-            margin: 0 0 10px 0;
-            font-size: 18px;
-            font-weight: 600;
+            margin: 0;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            color: #f3f4f6;
           }
           #poe-extension-notification p {
-            margin: 0 0 15px 0;
-            font-size: 14px;
-            opacity: 0.95;
+            margin: 0 0 16px 0;
+            font-size: 13px;
+            color: #9195a0;
           }
           #poe-extension-notification .button-container {
             display: flex;
@@ -481,89 +288,76 @@ if (window.__POE_CONTENT_SCRIPT_LOADED) {
           }
           #poe-extension-notification button {
             flex: 1;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
+            padding: 10px 14px;
+            border: 1px solid transparent;
+            border-radius: 9px;
+            font-size: 13px;
             font-weight: 600;
+            font-family: inherit;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background 0.15s, border-color 0.15s, transform 0.1s;
           }
+          #poe-extension-notification button:active { transform: scale(0.98); }
           #poe-extension-notification .btn-continue {
-            background: white;
-            color: #667eea;
+            background: #ff6b35;
+            color: #1a0f08;
           }
-          #poe-extension-notification .btn-continue:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
-          }
+          #poe-extension-notification .btn-continue:hover { background: #ff7d4d; }
           #poe-extension-notification .btn-cancel {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
+            background: rgba(255, 255, 255, 0.05);
+            color: #c9ccd3;
+            border-color: rgba(255, 255, 255, 0.1);
           }
           #poe-extension-notification .btn-cancel:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: #e8e9ec;
           }
         </style>
-        <h3>✅ Hideout Button Clicked</h3>
-        <p>Auto-click has been disabled. Would you like to continue monitoring?</p>
+        <div class="poe-head">
+          <span class="poe-check">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="#4ade80" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </span>
+          <h3>Hideout button clicked</h3>
+        </div>
+        <p>Auto-click is now off. Keep monitoring for the next alert?</p>
         <div class="button-container">
-          <button class="btn-continue" id="poe-continue-btn">Continue Monitoring</button>
-          <button class="btn-cancel" id="poe-cancel-btn">Stay Disabled</button>
+          <button class="btn-continue" id="poe-continue-btn">Continue monitoring</button>
+          <button class="btn-cancel" id="poe-cancel-btn">Stay disabled</button>
         </div>
       `
 
       document.body.appendChild(notification)
 
-      // Handle continue button
-      document.getElementById('poe-continue-btn').addEventListener('click', () => {
-        console.log('[POE Extension] User chose to continue monitoring')
-        
-        // Re-enable auto-click locally
-        autoClickEnabled = true
-        
-        // Save state globally for all tabs and close notifications on all tabs
-        try {
-          chrome.runtime.sendMessage({ type: 'saveAutoClickState', enabled: true }, (response) => {
-            if (response && response.success) {
-              console.log('[POE Extension] Auto-click enabled globally for all tabs')
-            }
-          })
-        } catch (error) {
-          console.log('[POE Extension] Could not send message:', error)
-        }
-        
-        // Close notification with animation (will be closed on all tabs by background message)
-        notification.style.animation = 'slideOut 0.3s ease-out'
-        setTimeout(() => notification.remove(), 300)
-      })
+      document
+        .getElementById('poe-continue-btn')
+        .addEventListener('click', () => {
+          log('User chose to continue monitoring')
+          autoClickEnabled = true
+          // Persist globally; background closes notifications on all tabs.
+          sendBg({ type: 'saveAutoClickState', enabled: true })
+          closeConfirmationNotification()
+        })
 
-      // Handle cancel button
-      document.getElementById('poe-cancel-btn').addEventListener('click', () => {
-        console.log('[POE Extension] User chose to stay disabled')
-        
-        // Disable auto-click globally for all tabs and close notifications on all tabs
-        try {
-          chrome.runtime.sendMessage({ type: 'saveAutoClickState', enabled: false }, (response) => {
-            if (response && response.success) {
-              console.log('[POE Extension] Auto-click disabled globally for all tabs')
-            }
-          })
-        } catch (error) {
-          console.log('[POE Extension] Could not send message:', error)
-        }
-        
-        // Close notification with animation (will be closed on all tabs by background message)
-        notification.style.animation = 'slideOut 0.3s ease-out'
-        setTimeout(() => notification.remove(), 300)
-      })
+      document
+        .getElementById('poe-cancel-btn')
+        .addEventListener('click', () => {
+          log('User chose to stay disabled')
+          sendBg({ type: 'saveAutoClickState', enabled: false })
+          closeConfirmationNotification()
+        })
     }
 
-    // Initialize
-    console.log(
-      '[POE Extension] Content script initialized - Extension enabled:',
+    // Readiness marker in the shared DOM so tests (and debugging) can tell the
+    // content script is live and listening for intercepted notifications.
+    document.documentElement.setAttribute('data-poe-ready', '1')
+
+    log(
+      'Content script initialized - enabled:',
       extensionEnabled,
-      'Auto-click:',
+      'auto-click:',
       autoClickEnabled
     )
   })()

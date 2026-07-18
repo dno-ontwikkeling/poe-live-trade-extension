@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>POE Auto-Clicker — Test Harness</title>
+    <style>
+      :root {
+        --bg: #101114;
+        --card: #1c1f24;
+        --border: rgba(255, 255, 255, 0.08);
+        --text: #e8e9ec;
+        --muted: #9195a0;
+        --faint: #6a6d75;
+        --accent: #ff6b35;
+        --ok: #22c55e;
+        --warn: #f59e0b;
+        --bad: #f0553a;
+        --info: #6cb6ff;
+        --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        --mono: 'SF Mono', 'Cascadia Code', Consolas, monospace;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: var(--font);
+        background:
+          radial-gradient(90% 60% at 100% 0%, rgba(255, 107, 53, 0.07), transparent 60%),
+          var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        padding: 28px;
+        max-width: 960px;
+        margin: 0 auto;
+      }
+      h1 { font-size: 24px; letter-spacing: -0.01em; }
+      h1 small { color: var(--accent); font-size: 13px; font-weight: 600; display: block; }
+      h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--faint); margin-bottom: 14px; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 22px; }
+      .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+      .full { grid-column: 1 / -1; }
+
+      /* status strip */
+      .strip { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+      .pill {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: var(--card); border: 1px solid var(--border);
+        border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600;
+      }
+      .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--faint); }
+      .dot.ok { background: var(--ok); box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18); }
+      .dot.bad { background: var(--bad); }
+      .dot.warn { background: var(--warn); }
+
+      /* controls */
+      label.check { display: flex; align-items: center; gap: 10px; padding: 7px 0; cursor: pointer; font-size: 14px; }
+      label.check input { width: 16px; height: 16px; accent-color: var(--accent); }
+      label.check .hint { color: var(--muted); font-size: 12px; }
+      .field { display: flex; gap: 8px; margin-top: 12px; }
+      .field input[type='text'] {
+        flex: 1; background: #14161a; border: 1px solid var(--border); color: var(--text);
+        border-radius: 8px; padding: 9px 12px; font-size: 13px; font-family: inherit;
+      }
+
+      button {
+        font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+        border: 1px solid transparent; border-radius: 9px; padding: 9px 15px; transition: background 0.15s, transform 0.1s;
+      }
+      button:active { transform: scale(0.98); }
+      .btn-accent { background: var(--accent); color: #1a0f08; }
+      .btn-accent:hover { background: #ff7d4d; }
+      .btn-ghost { background: transparent; color: var(--muted); border-color: var(--border); }
+      .btn-ghost:hover { color: var(--text); background: #14161a; }
+      .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+      /* preset chips */
+      .presets { display: flex; flex-wrap: wrap; gap: 8px; }
+      .preset { background: #14161a; border: 1px solid var(--border); color: var(--text); border-radius: 999px; padding: 7px 13px; font-size: 12px; }
+      .preset:hover { border-color: var(--accent); }
+
+      /* target buttons */
+      #targets { display: flex; flex-direction: column; gap: 10px; min-height: 60px; }
+      #targets:empty::after { content: 'No target elements. Apply a layout or preset.'; color: var(--faint); font-size: 13px; }
+      .target {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        background: #14161a; border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;
+      }
+      .target[data-clicked='true'] { border-color: var(--ok); background: rgba(34, 197, 94, 0.08); }
+      .target .tag { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--faint); font-weight: 700; }
+      .target button, .target a {
+        font-size: 13px; font-weight: 600; text-decoration: none;
+        padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border);
+        background: #1f2937; color: var(--text);
+      }
+      .target button[disabled] { opacity: 0.45; cursor: not-allowed; }
+      .target a { display: inline-block; }
+
+      /* log */
+      #log { list-style: none; font-family: var(--mono); font-size: 12.5px; max-height: 300px; overflow-y: auto; }
+      #log li { padding: 6px 0; border-bottom: 1px solid var(--border); display: flex; gap: 10px; }
+      #log time { color: var(--faint); flex-shrink: 0; }
+      #log .l-click { color: var(--ok); }
+      #log .l-fire { color: var(--info); }
+      #log .l-warn { color: var(--warn); }
+      .empty { color: var(--faint); font-size: 13px; }
+      code { background: #14161a; padding: 2px 6px; border-radius: 5px; font-family: var(--mono); font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <h1>
+      Hideout Auto-Clicker — Test Harness
+      <small>Path of Exile trade extension</small>
+    </h1>
+
+    <div class="strip">
+      <span class="pill"><span class="dot" id="readyDot"></span><span id="readyText">Content script: checking…</span></span>
+      <span class="pill"><span class="dot" id="permDot"></span><span id="permText">Notifications: checking…</span></span>
+      <button class="btn-ghost" id="reqPerm">Request notification permission</button>
+    </div>
+
+    <p style="margin-top: 16px; color: var(--muted); font-size: 13px">
+      Enable the extension <strong>and</strong> auto-click from the popup, then fire a
+      notification below. The extension should click the <code>Travel to hideout</code> button
+      (and any <code>Teleport anyway?</code> button), skip decoys/disabled/hidden ones, and show
+      its confirmation prompt.
+    </p>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Scenario layout</h2>
+        <label class="check"><input type="checkbox" id="optHideout" checked /> Hideout button <span class="hint">— should be clicked</span></label>
+        <label class="check"><input type="checkbox" id="optDelay" /> Hideout appears after 1.5s <span class="hint">— tests the observer wait</span></label>
+        <label class="check"><input type="checkbox" id="optDisabled" /> Hideout button disabled <span class="hint">— must be skipped</span></label>
+        <label class="check"><input type="checkbox" id="optHidden" /> Extra hidden hideout button <span class="hint">— must be skipped</span></label>
+        <label class="check"><input type="checkbox" id="optTeleport" checked /> "Teleport anyway?" button <span class="hint">— clicked after hideout</span></label>
+        <label class="check"><input type="checkbox" id="optDecoy" checked /> Decoy "hideout" link <span class="hint">— must NOT be clicked</span></label>
+
+        <div class="field">
+          <input type="text" id="msg" value="Mirror of Kalandra listed for 240 divine" />
+        </div>
+        <div class="btn-row">
+          <button class="btn-accent" id="fire">Fire trade notification</button>
+          <button class="btn-ghost" id="apply">Apply layout only</button>
+        </div>
+
+        <h2 style="margin-top: 22px">Quick presets</h2>
+        <div class="presets">
+          <button class="preset" data-preset="basic">Basic click</button>
+          <button class="preset" data-preset="delay">Delayed button</button>
+          <button class="preset" data-preset="timeout">Never appears</button>
+          <button class="preset" data-preset="skip">Disabled + decoy only</button>
+          <button class="preset" data-preset="full">Full flow</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Target elements</h2>
+        <div id="targets"></div>
+      </section>
+
+      <section class="card full">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px">
+          <h2 style="margin: 0">Activity log</h2>
+          <button class="btn-ghost" id="clearLog">Clear</button>
+        </div>
+        <ul id="log"><li class="empty">Waiting for activity…</li></ul>
+      </section>
+    </div>
+
+    <script>
+      const $ = id => document.getElementById(id)
+      const targets = $('targets')
+      const logEl = $('log')
+
+      function log (msg, kind) {
+        if (logEl.querySelector('.empty')) logEl.innerHTML = ''
+        const li = document.createElement('li')
+        const t = new Date().toLocaleTimeString()
+        li.innerHTML = `<time>${t}</time><span class="l-${kind || 'info'}"></span>`
+        li.querySelector('span').textContent = msg
+        logEl.prepend(li)
+      }
+
+      // --- build target elements from the checkboxes ---
+      function makeTarget (role, label, tag, el) {
+        const row = document.createElement('div')
+        row.className = 'target'
+        row.dataset.role = role
+        row.dataset.clicked = 'false'
+        const t = document.createElement('span')
+        t.className = 'tag'
+        t.textContent = tag
+        row.append(el, t)
+        el.addEventListener('click', event => {
+          if (el.tagName === 'A') event.preventDefault()
+          if (row.dataset.clicked === 'true') return
+          row.dataset.clicked = 'true'
+          log(`clicked: ${label}`, 'click')
+        })
+        return row
+      }
+
+      function addHideout ({ disabled = false, hidden = false } = {}) {
+        const b = document.createElement('button')
+        b.textContent = 'Travel to hideout'
+        if (disabled) b.disabled = true
+        const row = makeTarget('hideout', 'Travel to hideout' + (disabled ? ' (disabled)' : hidden ? ' (hidden)' : ''), disabled ? 'should skip' : hidden ? 'should skip' : 'should click', b)
+        if (hidden) row.style.display = 'none'
+        targets.appendChild(row)
+        return row
+      }
+
+      function buildLayout () {
+        targets.innerHTML = ''
+        const delayed = $('optDelay').checked
+        if ($('optHideout').checked && !delayed) addHideout()
+        if ($('optDisabled').checked) addHideout({ disabled: true })
+        if ($('optHidden').checked) addHideout({ hidden: true })
+        if ($('optTeleport').checked) {
+          const b = document.createElement('button')
+          b.textContent = 'In demand. Teleport anyway?'
+          targets.appendChild(makeTarget('teleport', 'In demand. Teleport anyway?', 'clicked after hideout', b))
+        }
+        if ($('optDecoy').checked) {
+          const a = document.createElement('a')
+          a.href = '#'
+          a.textContent = 'Go to my hideout stash'
+          targets.appendChild(makeTarget('decoy', 'Go to my hideout stash (decoy)', 'must NOT click', a))
+        }
+      }
+
+      function fireNotification () {
+        buildLayout()
+        // Optionally add the hideout button late, to exercise the observer.
+        if ($('optHideout').checked && $('optDelay').checked) {
+          log('hideout button will appear in 1.5s…', 'warn')
+          setTimeout(() => {
+            targets.prepend(addHideout())
+            log('hideout button added to DOM', 'info')
+          }, 1500)
+        }
+        const body = $('msg').value.trim() || 'Item listed'
+        try {
+          new Notification('POE Trade Alert', { body })
+          log(`fired notification: "${body}"`, 'fire')
+        } catch (e) {
+          log('Notification() threw: ' + e.message, 'warn')
+        }
+      }
+
+      $('fire').addEventListener('click', fireNotification)
+      $('apply').addEventListener('click', buildLayout)
+      $('clearLog').addEventListener('click', () => {
+        logEl.innerHTML = '<li class="empty">Waiting for activity…</li>'
+      })
+
+      const PRESETS = {
+        basic: { optHideout: 1, optDelay: 0, optDisabled: 0, optHidden: 0, optTeleport: 0, optDecoy: 0 },
+        delay: { optHideout: 1, optDelay: 1, optDisabled: 0, optHidden: 0, optTeleport: 0, optDecoy: 0 },
+        timeout: { optHideout: 0, optDelay: 0, optDisabled: 0, optHidden: 0, optTeleport: 0, optDecoy: 1 },
+        skip: { optHideout: 0, optDelay: 0, optDisabled: 1, optHidden: 1, optTeleport: 0, optDecoy: 1 },
+        full: { optHideout: 1, optDelay: 0, optDisabled: 1, optHidden: 1, optTeleport: 1, optDecoy: 1 }
+      }
+      for (const chip of document.querySelectorAll('.preset')) {
+        chip.addEventListener('click', () => {
+          const p = PRESETS[chip.dataset.preset]
+          for (const k in p) $(k).checked = !!p[k]
+          buildLayout()
+          log(`preset applied: ${chip.dataset.preset}`, 'info')
+        })
+      }
+
+      // --- status indicators ---
+      function refreshPermission () {
+        const dot = $('permDot')
+        const text = $('permText')
+        if (!('Notification' in window)) {
+          dot.className = 'dot bad'
+          text.textContent = 'Notifications: unsupported'
+          return
+        }
+        const p = Notification.permission
+        dot.className = 'dot ' + (p === 'granted' ? 'ok' : p === 'denied' ? 'bad' : 'warn')
+        text.textContent = 'Notifications: ' + p
+      }
+      $('reqPerm').addEventListener('click', () => {
+        if ('Notification' in window) Notification.requestPermission().then(refreshPermission)
+      })
+
+      setInterval(() => {
+        const ready = document.documentElement.dataset.poeReady === '1'
+        $('readyDot').className = 'dot ' + (ready ? 'ok' : 'warn')
+        $('readyText').textContent = 'Content script: ' + (ready ? 'injected' : 'not injected')
+        refreshPermission()
+      }, 500)
+
+      buildLayout()
+      log('test harness loaded', 'info')
+    </script>
+  </body>
+</html>

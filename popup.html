@@ -10,49 +10,50 @@
     <div class="container">
       <header>
         <img src="PoeLogo.png" alt="POE Trade" class="header-logo" />
-        <h1 class="header-title">Auto-Clicker for Hideout Button</h1>
+        <div class="header-text">
+          <h1 class="header-title">Hideout Auto-Clicker</h1>
+          <p class="header-subtitle">Path of Exile trade alerts</p>
+        </div>
       </header>
 
-      <section class="settings">
-        <h2>Settings</h2>
-        <div class="setting-item">
+      <section class="card">
+        <div class="card-title">Controls</div>
+
+        <div class="row">
+          <div class="row-text">
+            <span class="row-label">Enable extension</span>
+            <span class="row-desc">Monitor trade alerts on POE trade pages</span>
+          </div>
           <label class="switch">
             <input type="checkbox" id="enableExtension" />
             <span class="slider"></span>
           </label>
-          <label for="enableExtension">Enable Extension</label>
         </div>
-        <div class="status" id="status">
-          <span class="status-indicator active"></span>
-          <span id="statusText">Active - Monitoring alerts</span>
-        </div>
-      </section>
 
-      <section class="controls">
-        <h2>Monitoring Status</h2>
-        <p class="control-info" id="monitoringStatus">
-          Toggle extension above to start monitoring this page
-        </p>
-
-        <div style="margin-top: 16px">
-          <div class="setting-item">
-            <label class="switch">
-              <input type="checkbox" id="autoClickToggle" />
-              <span class="slider"></span>
-            </label>
-            <label for="autoClickToggle">Auto-Click Hideout Button</label>
+        <div class="row">
+          <div class="row-text">
+            <span class="row-label">Auto-click hideout</span>
+            <span class="row-desc">Click “Travel to hideout” when an alert fires</span>
           </div>
-          <p class="control-info">
-            When enabled, automatically clicks "Travel to hideout" button when
-            notification is received.
-          </p>
+          <label class="switch">
+            <input type="checkbox" id="autoClickToggle" />
+            <span class="slider"></span>
+          </label>
         </div>
+
+        <div class="status" id="status">
+          <span class="status-indicator inactive"></span>
+          <span id="statusText">Inactive - Extension disabled</span>
+        </div>
+        <p class="status-hint" id="monitoringStatus">
+          Toggle the extension above to start monitoring this page
+        </p>
       </section>
 
-      <section class="debug">
-        <div class="debug-header">
-          <h2>Alert Log</h2>
-          <button id="clearLog" class="btn btn-small">Clear</button>
+      <section class="card">
+        <div class="card-title-row">
+          <span class="card-title">Alert log</span>
+          <button id="clearLog" class="btn btn-ghost">Clear</button>
         </div>
         <div id="alertLog" class="alert-log">
           <p class="empty-state">No alerts intercepted yet</p>
@@ -61,11 +62,9 @@
 
       <footer>
         <p class="info">
-          Extension monitors alerts and clicks "Travel to hideout" button
+          Clicks the “Travel to hideout” button when a trade alert is received.
         </p>
-        <p class="info">
-          A confirmation dialog appears on the page after clicking
-        </p>
+        <p class="info">A confirmation prompt appears on the page after each click.</p>
       </footer>
     </div>
 

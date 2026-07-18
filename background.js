@@ -1,63 +1,70 @@
 // Background service worker
-let alertHistory = []
-let extensionEnabled = false
-let autoClickEnabled = false
+// State lives in chrome.storage.local (source of truth). MV3 workers get
+// terminated when idle, so in-memory globals cannot be trusted between events.
+const MAX_ALERTS = 20
+const DEBUG = false
+const POE_TRADE_MATCH = 'https://www.pathofexile.com/trade/*'
 
-// Initialize extension state from storage
-chrome.storage.local.get(['extensionEnabled', 'autoClickEnabled'], result => {
-  extensionEnabled =
-    result.extensionEnabled !== undefined ? result.extensionEnabled : false
-  autoClickEnabled =
-    result.autoClickEnabled !== undefined ? result.autoClickEnabled : false
-  console.log(
-    '[Background] Extension initialized - Enabled:',
-    extensionEnabled,
-    'Auto-click:',
-    autoClickEnabled
-  )
-})
+const log = (...args) => {
+  if (DEBUG) console.log('[Background]', ...args)
+}
+
+// Read the full state with defaults. Returns a promise (MV3 storage API).
+function getState () {
+  return chrome.storage.local.get({
+    extensionEnabled: false,
+    autoClickEnabled: false,
+    alertHistory: []
+  })
+}
 
 // Function to check if URL is POE trade
 function isPoeTradeUrl (url) {
   return url && url.startsWith('https://www.pathofexile.com/trade')
 }
 
+// Send a message to every open POE trade tab, ignoring tabs without a
+// content script.
+async function messageAllTradeTabs (message) {
+  const tabs = await chrome.tabs.query({ url: POE_TRADE_MATCH })
+  await Promise.all(
+    tabs.map(tab =>
+      chrome.tabs.sendMessage(tab.id, message).catch(() => {
+        log('Could not message tab:', tab.id)
+      })
+    )
+  )
+}
+
 // Function to inject scripts into a tab
 async function injectScripts (tabId) {
   try {
-    console.log(
-      '[Background] Checking if scripts need injection for tab:',
-      tabId
-    )
-
     // Check if content script is already loaded
     try {
       const response = await chrome.tabs.sendMessage(tabId, { action: 'ping' })
       if (response && response.alive) {
-        console.log('[Background] Scripts already injected in tab:', tabId)
+        log('Scripts already injected in tab:', tabId)
         return true
       }
     } catch (e) {
       // Content script not loaded, proceed with injection
-      console.log('[Background] Content script not loaded, injecting...')
+      log('Content script not loaded, injecting into tab:', tabId)
     }
-
-    console.log('[Background] Injecting scripts into tab:', tabId)
 
     // First inject the page context script that intercepts notifications
     await chrome.scripting.executeScript({
-      target: { tabId: tabId },
+      target: { tabId },
       files: ['inject.js'],
       world: 'MAIN'
     })
 
     // Then inject the content script
     await chrome.scripting.executeScript({
-      target: { tabId: tabId },
+      target: { tabId },
       files: ['content.js']
     })
 
-    console.log('[Background] Scripts injected successfully')
+    log('Scripts injected successfully into tab:', tabId)
     return true
   } catch (error) {
     console.error('[Background] Failed to inject scripts:', error)
@@ -67,177 +74,110 @@ async function injectScripts (tabId) {
 
 // Listen for tab updates to auto-inject scripts on POE trade pages
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  // Only inject when page finishes loading on POE trade URLs
-  if (
-    changeInfo.status === 'complete' &&
-    tab.url &&
-    extensionEnabled &&
-    isPoeTradeUrl(tab.url)
-  ) {
-    console.log(
-      '[Background] Auto-injecting scripts into POE trade page:',
-      tabId
-    )
+  if (changeInfo.status !== 'complete' || !tab.url || !isPoeTradeUrl(tab.url)) {
+    return
+  }
+  const { extensionEnabled } = await getState()
+  if (extensionEnabled) {
+    log('Auto-injecting scripts into POE trade page:', tabId)
     await injectScripts(tabId)
   }
 })
 
-// Listen for messages from content scripts and popup
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === 'setExtensionEnabled') {
-    // Update global extension enabled state
-    extensionEnabled = request.enabled
-    chrome.storage.local.set({ extensionEnabled: extensionEnabled })
-    console.log(
-      '[Background] Extension globally',
-      extensionEnabled ? 'enabled' : 'disabled'
-    )
-
-    // If enabling, inject into current POE trade tabs
-    if (extensionEnabled) {
-      chrome.tabs.query(
-        { url: 'https://www.pathofexile.com/trade/*' },
-        tabs => {
-          tabs.forEach(tab => {
-            console.log(
-              '[Background] Injecting into existing POE trade tab:',
-              tab.id
-            )
-            injectScripts(tab.id)
-          })
-        }
-      )
-    }
-
-    sendResponse({ success: true })
-    return true
-  } else if (request.type === 'getExtensionEnabled') {
-    sendResponse({ enabled: extensionEnabled })
-    return true
-  } else if (request.type === 'injectScripts') {
-    // Handle script injection request from popup
-    injectScripts(request.tabId).then(success => {
-      sendResponse({ success })
-    })
-    return true
-  } else if (request.type === 'getTabId') {
-    // Return the tab ID to content script
-    if (sender.tab && sender.tab.id) {
-      sendResponse({ tabId: sender.tab.id })
-    } else {
-      sendResponse({ tabId: null })
-    }
-  } else if (request.type === 'alertIntercepted') {
-    console.log('[Background] Alert intercepted:', request.alert)
-    alertHistory.push(request.alert)
-
-    // Keep only last 5 alerts
-    if (alertHistory.length > 5) {
-      alertHistory.shift()
-    }
-  } else if (request.type === 'alertUpdated') {
-    console.log('[Background] Alert updated:', request.alert)
-    // Update the last alert in history
-    if (alertHistory.length > 0) {
-      alertHistory[alertHistory.length - 1] = request.alert
-    }
-  } else if (request.type === 'showConfirmationOnAllTabs') {
-    console.log('[Background] Showing confirmation on all POE trade tabs')
-    // Show confirmation notification on all POE trade tabs
-    chrome.tabs.query({ url: 'https://www.pathofexile.com/trade/*' }, tabs => {
-      tabs.forEach(tab => {
-        chrome.tabs.sendMessage(
-          tab.id,
-          { action: 'showConfirmationNotification' },
-          () => {
-            // Ignore errors if content script not loaded
-            if (chrome.runtime.lastError) {
-              console.log('[Background] Could not show confirmation on tab:', tab.id)
-            }
-          }
-        )
-      })
-    })
-    sendResponse({ success: true })
-  } else if (request.type === 'autoClickEnabled') {
-    console.log('[Background] Auto-click enabled')
-    autoClickEnabled = true
-    chrome.storage.local.set({ autoClickEnabled: true })
-  } else if (request.type === 'autoClickDisabled') {
-    console.log('[Background] Auto-click disabled')
-    autoClickEnabled = false
-    chrome.storage.local.set({ autoClickEnabled: false })
-  } else if (request.type === 'getAlertHistory') {
-    sendResponse({ alerts: alertHistory })
-  } else if (request.type === 'clearAlertHistory') {
-    alertHistory = []
-    sendResponse({ success: true })
-  } else if (request.type === 'saveAutoClickState') {
-    // Save global auto-click state
-    autoClickEnabled = request.enabled
-    chrome.storage.local.set({ autoClickEnabled: autoClickEnabled }, () => {
-      if (chrome.runtime.lastError) {
-        console.log(
-          '[Background] Could not save auto-click state:',
-          chrome.runtime.lastError.message
-        )
-        sendResponse({
-          success: false,
-          error: chrome.runtime.lastError.message
-        })
-      } else {
-        console.log(
-          '[Background] Successfully saved global auto-click state:',
-          autoClickEnabled
-        )
-
-        // Notify all POE trade tabs about the state change
-        chrome.tabs.query(
-          { url: 'https://www.pathofexile.com/trade/*' },
-          tabs => {
-            tabs.forEach(tab => {
-              // Update auto-click state
-              chrome.tabs.sendMessage(
-                tab.id,
-                {
-                  action: autoClickEnabled
-                    ? 'enableAutoClick'
-                    : 'disableAutoClick'
-                },
-                () => {
-                  // Ignore errors if content script not loaded
-                  if (chrome.runtime.lastError) {
-                    console.log('[Background] Could not notify tab:', tab.id)
-                  }
-                }
-              )
-              
-              // Close confirmation notifications on all tabs
-              chrome.tabs.sendMessage(
-                tab.id,
-                { action: 'closeConfirmationNotification' },
-                () => {
-                  // Ignore errors if content script not loaded
-                  if (chrome.runtime.lastError) {
-                    console.log('[Background] Could not close notification on tab:', tab.id)
-                  }
-                }
-              )
-            })
-          }
-        )
-
-        sendResponse({ success: true })
+// Handle a single message. Always resolves to a response object so callers
+// can rely on the response callback firing.
+async function handleMessage (request, sender) {
+  switch (request.type) {
+    case 'setExtensionEnabled': {
+      await chrome.storage.local.set({ extensionEnabled: request.enabled })
+      log('Extension globally', request.enabled ? 'enabled' : 'disabled')
+      if (request.enabled) {
+        const tabs = await chrome.tabs.query({ url: POE_TRADE_MATCH })
+        await Promise.all(tabs.map(tab => injectScripts(tab.id)))
       }
-    })
-    return true
-  } else if (request.type === 'getAutoClickState') {
-    // Get global auto-click state
-    sendResponse({ success: true, enabled: autoClickEnabled })
-    return true
-  }
+      return { success: true }
+    }
 
+    case 'getExtensionEnabled': {
+      const { extensionEnabled } = await getState()
+      return { enabled: extensionEnabled }
+    }
+
+    case 'injectScripts':
+      return { success: await injectScripts(request.tabId) }
+
+    case 'getTabId':
+      return { tabId: sender.tab && sender.tab.id ? sender.tab.id : null }
+
+    case 'alertIntercepted': {
+      const { alertHistory } = await getState()
+      alertHistory.push(request.alert)
+      while (alertHistory.length > MAX_ALERTS) alertHistory.shift()
+      await chrome.storage.local.set({ alertHistory })
+      return { success: true }
+    }
+
+    case 'alertUpdated': {
+      const { alertHistory } = await getState()
+      if (alertHistory.length > 0) {
+        alertHistory[alertHistory.length - 1] = request.alert
+        await chrome.storage.local.set({ alertHistory })
+      }
+      return { success: true }
+    }
+
+    case 'showConfirmationOnAllTabs': {
+      await messageAllTradeTabs({ action: 'showConfirmationNotification' })
+      return { success: true }
+    }
+
+    case 'autoClickEnabled':
+      await chrome.storage.local.set({ autoClickEnabled: true })
+      return { success: true }
+
+    case 'autoClickDisabled':
+      await chrome.storage.local.set({ autoClickEnabled: false })
+      return { success: true }
+
+    case 'getAlertHistory': {
+      const { alertHistory } = await getState()
+      return { alerts: alertHistory }
+    }
+
+    case 'clearAlertHistory':
+      await chrome.storage.local.set({ alertHistory: [] })
+      return { success: true }
+
+    case 'saveAutoClickState': {
+      await chrome.storage.local.set({ autoClickEnabled: request.enabled })
+      log('Saved global auto-click state:', request.enabled)
+      await messageAllTradeTabs({
+        action: request.enabled ? 'enableAutoClick' : 'disableAutoClick'
+      })
+      await messageAllTradeTabs({ action: 'closeConfirmationNotification' })
+      return { success: true }
+    }
+
+    case 'getAutoClickState': {
+      const { autoClickEnabled } = await getState()
+      return { success: true, enabled: autoClickEnabled }
+    }
+
+    default:
+      return { success: false, error: 'unknown message type: ' + request.type }
+  }
+}
+
+// Listen for messages from content scripts and popup. Every handler is async,
+// so we always keep the channel open (return true) and reply once resolved.
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  handleMessage(request, sender)
+    .then(sendResponse)
+    .catch(error => {
+      console.error('[Background] Message handler error:', error)
+      sendResponse({ success: false, error: String(error) })
+    })
   return true
 })
 
-console.log('[Background] Service worker initialized')
+log('Service worker initialized')

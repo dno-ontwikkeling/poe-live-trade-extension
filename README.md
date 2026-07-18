@@ -4,7 +4,7 @@ A Chrome extension that monitors Path of Exile trade website alerts and automati
 
 ## Features
 
-✨ **Alert Monitoring** - Intercepts all window alerts on POE trade pages
+✨ **Alert Monitoring** - Intercepts browser notifications (Notification API) on POE trade pages
 🎯 **Auto-Click** - Automatically clicks "Travel to hideout" button when alert is detected
 🛡️ **Safe Operation** - Requires user confirmation after each click to prevent spam
 📊 **Debug Log** - Shows all intercepted alerts for debugging
@@ -79,14 +79,31 @@ Click the extension icon to open the popup with these controls:
    - Confirm the hideout button is clicked automatically
    - Verify the confirmation dialog appears after clicking
 
+## Automated Testing
+
+End-to-end tests use [Playwright](https://playwright.dev), which loads the
+unpacked extension into Chromium and drives the full flow (notification
+intercepted → hideout button clicked → confirmation shown).
+
+```bash
+npm install
+npx playwright install chromium   # one-time browser download
+npm test                          # headless
+npm run test:headed               # watch it run in a visible browser
+```
+
+Tests live in `tests/`. `tests/fixtures/trade.html` is served in place of the
+real trade page (via request interception) so the background worker
+auto-injects the scripts exactly as it would on `pathofexile.com/trade`.
+
 ## How It Works
 
 ### Architecture
 
 1. **Content Script** (`content.js`):
    - Runs on POE trade pages and test page
-   - Overrides `window.alert()` to intercept alerts
-   - Searches for and clicks "Travel to hideout" button
+   - Receives intercepted notifications from the page context (`inject.js`)
+   - Waits for and clicks the "Travel to hideout" button via a `MutationObserver`
    - Shows custom confirmation dialog after clicking
    - Maintains alert log
 
@@ -103,9 +120,9 @@ Click the extension icon to open the popup with these controls:
 ### Alert Interception Flow
 
 ```
-1. Website triggers window.alert()
+1. Website creates a browser Notification
    ↓
-2. Extension intercepts the alert
+2. Extension intercepts the notification (Notification API proxy)
    ↓
 3. Logs the alert (timestamp, message)
    ↓
@@ -204,8 +221,8 @@ After modifying code:
 
 - Only works on Chromium-based browsers (Chrome, Edge, Brave, etc.)
 - Requires manual confirmation after each auto-click (by design)
-- Button search is text-based (must contain "hideout" in the text)
-- Limited to 100 alerts in history (automatically cleaned)
+- Button search is text-based (matches "travel to hideout")
+- Limited to 20 alerts in history (automatically cleaned)
 
 ## Known Issues
 
@@ -232,6 +249,17 @@ If you encounter issues:
 4. Verify extension permissions
 
 ## Version History
+
+### v1.1.0 (2026-07-18)
+- Fixed state loss on MV3 service worker restart (state now persisted in `chrome.storage.local`)
+- Fixed init race in background worker (state read per-message, no stale globals)
+- Removed per-tab storage keys that leaked entries forever; single global auto-click state
+- Tightened button matching to "travel to hideout" (avoids clicking unrelated links)
+- Replaced 20ms polling with a `MutationObserver`
+- Rewrote page-context interceptor as a `Proxy` (preserves prototype, statics, live permission, `instanceof`)
+- Fixed dangling message ports in the background listener
+- Removed unused `notifications` permission and narrowed `web_accessible_resources`
+- Gated debug logging behind a `DEBUG` flag
 
 ### v1.0.0 (2026-02-03)
 - Initial release

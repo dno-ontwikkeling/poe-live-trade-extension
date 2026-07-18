@@ -1,3 +1,15 @@
 node_modules/
 *.log
 .DS_Store
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Claude Code / tooling state
+.claude/
+popup-preview.png
+harness-preview.png
+dlg-preview.png
