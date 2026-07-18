@@ -12,3 +12,4 @@ playwright/.cache/
 .claude/
 popup-preview.png
 harness-preview.png
+dlg-preview.png

@@ -213,7 +213,7 @@ if (window.__POE_CONTENT_SCRIPT_LOADED) {
     function closeConfirmationNotification () {
       const notification = document.getElementById('poe-extension-notification')
       if (notification) {
-        notification.style.animation = 'slideOut 0.3s ease-out'
+        notification.style.animation = 'poeSlideOut 0.28s ease-out forwards'
         setTimeout(() => notification.remove(), 300)
       }
     }
@@ -229,37 +229,58 @@ if (window.__POE_CONTENT_SCRIPT_LOADED) {
         position: fixed;
         top: 20px;
         right: 20px;
-        background: #4a5568;
-        color: white;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        z-index: 999999;
+        background: linear-gradient(180deg, #1e2126 0%, #16181c 100%);
+        color: #e8e9ec;
+        padding: 18px 20px 20px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+        z-index: 2147483647;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        min-width: 300px;
-        max-width: 400px;
-        animation: slideIn 0.3s ease-out;
+        line-height: 1.5;
+        min-width: 320px;
+        max-width: 380px;
+        animation: poeSlideIn 0.28s cubic-bezier(0.4, 0, 0.2, 1);
       `
 
       notification.innerHTML = `
         <style>
-          @keyframes slideIn {
-            from { transform: translateX(400px); opacity: 0; }
+          @keyframes poeSlideIn {
+            from { transform: translateX(420px); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
           }
-          @keyframes slideOut {
+          @keyframes poeSlideOut {
             from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(420px); opacity: 0; }
+          }
+          #poe-extension-notification * { box-sizing: border-box; }
+          #poe-extension-notification .poe-head {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            margin-bottom: 10px;
+          }
+          #poe-extension-notification .poe-check {
+            flex-shrink: 0;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: rgba(34, 197, 94, 0.16);
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
           #poe-extension-notification h3 {
-            margin: 0 0 10px 0;
-            font-size: 18px;
-            font-weight: 600;
+            margin: 0;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            color: #f3f4f6;
           }
           #poe-extension-notification p {
-            margin: 0 0 15px 0;
-            font-size: 14px;
-            opacity: 0.95;
+            margin: 0 0 16px 0;
+            font-size: 13px;
+            color: #9195a0;
           }
           #poe-extension-notification .button-container {
             display: flex;
@@ -267,35 +288,44 @@ if (window.__POE_CONTENT_SCRIPT_LOADED) {
           }
           #poe-extension-notification button {
             flex: 1;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
+            padding: 10px 14px;
+            border: 1px solid transparent;
+            border-radius: 9px;
+            font-size: 13px;
             font-weight: 600;
+            font-family: inherit;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background 0.15s, border-color 0.15s, transform 0.1s;
           }
+          #poe-extension-notification button:active { transform: scale(0.98); }
           #poe-extension-notification .btn-continue {
-            background: white;
-            color: #667eea;
+            background: #ff6b35;
+            color: #1a0f08;
           }
-          #poe-extension-notification .btn-continue:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
-          }
+          #poe-extension-notification .btn-continue:hover { background: #ff7d4d; }
           #poe-extension-notification .btn-cancel {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
+            background: rgba(255, 255, 255, 0.05);
+            color: #c9ccd3;
+            border-color: rgba(255, 255, 255, 0.1);
           }
           #poe-extension-notification .btn-cancel:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: #e8e9ec;
           }
         </style>
-        <h3>✅ Hideout Button Clicked</h3>
-        <p>Auto-click has been disabled. Would you like to continue monitoring?</p>
+        <div class="poe-head">
+          <span class="poe-check">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="#4ade80" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </span>
+          <h3>Hideout button clicked</h3>
+        </div>
+        <p>Auto-click is now off. Keep monitoring for the next alert?</p>
         <div class="button-container">
-          <button class="btn-continue" id="poe-continue-btn">Continue Monitoring</button>
-          <button class="btn-cancel" id="poe-cancel-btn">Stay Disabled</button>
+          <button class="btn-continue" id="poe-continue-btn">Continue monitoring</button>
+          <button class="btn-cancel" id="poe-cancel-btn">Stay disabled</button>
         </div>
       `
 
