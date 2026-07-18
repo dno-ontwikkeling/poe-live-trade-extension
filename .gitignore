@@ -10,3 +10,4 @@ playwright/.cache/
 
 # Claude Code / tooling state
 .claude/
+popup-preview.png
