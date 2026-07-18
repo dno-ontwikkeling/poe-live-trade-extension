@@ -1,8 +1,9 @@
 // Launch a headed Chromium with the unpacked extension loaded, serving the
-// test fixture in place of the real trade page. Stays open until you close
+// interactive test harness in place of the real trade page (so the extension
+// injects and behaves exactly as in production). Stays open until you close
 // the browser window (or Ctrl+C).
 //
-//   node scripts/launch.js            # fixture trade page (offline)
+//   node scripts/launch.js            # interactive test harness (offline)
 //   node scripts/launch.js --real     # the real pathofexile.com trade site
 
 const path = require('path')
@@ -12,8 +13,8 @@ const { chromium } = require('@playwright/test')
 const EXTENSION_PATH = path.resolve(__dirname, '..')
 const TRADE_ORIGIN = 'https://www.pathofexile.com'
 const TRADE_URL = `${TRADE_ORIGIN}/trade/search/Standard`
-const FIXTURE_HTML = fs.readFileSync(
-  path.resolve(__dirname, '../tests/fixtures/trade.html'),
+const HARNESS_HTML = fs.readFileSync(
+  path.resolve(__dirname, '../tests/fixtures/test-page.html'),
   'utf8'
 )
 
@@ -43,9 +44,9 @@ const useReal = process.argv.includes('--real')
   await context.grantPermissions(['notifications'], { origin: TRADE_ORIGIN })
 
   if (!useReal) {
-    // Serve the fixture as if it were the trade page.
+    // Serve the interactive harness as if it were the trade page.
     await context.route(`${TRADE_ORIGIN}/trade/**`, route =>
-      route.fulfill({ contentType: 'text/html', body: FIXTURE_HTML })
+      route.fulfill({ contentType: 'text/html', body: HARNESS_HTML })
     )
   }
 
@@ -54,11 +55,9 @@ const useReal = process.argv.includes('--real')
 
   console.log('Extension loaded and enabled.')
   if (!useReal) {
-    console.log(
-      'Fixture page open. Fire a test notification from the DevTools console:'
-    )
-    console.log("  new Notification('POE Trade Alert', { body: 'Item listed' })")
-    console.log('The "Travel to hideout" button should get auto-clicked.')
+    console.log('Interactive test harness open.')
+    console.log('Pick a preset (or scenario), then "Fire trade notification".')
+    console.log('Watch the target rows and activity log to see what got clicked.')
   }
   console.log('Close the browser window to exit.')
 
