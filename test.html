@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POE Trade Alert Test Page</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+      color: #e0e0e0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding: 30px;
+      background: rgba(255, 107, 53, 0.1);
+      border-radius: 8px;
+      border: 2px solid #ff6b35;
+    }
+
+    h1 {
+      color: #ff6b35;
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: #999;
+      font-size: 14px;
+    }
+
+    .test-section {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 24px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    h2 {
+      color: #ffffff;
+      font-size: 20px;
+      margin-bottom: 16px;
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+      min-width: 150px;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary {
+      background: #4caf50;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #45a049;
+    }
+
+    .btn-secondary {
+      background: #2196f3;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #0b7dda;
+    }
+
+    .btn-danger {
+      background: #f44336;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #da190b;
+    }
+
+    .btn-hideout {
+      background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+      color: white;
+      font-size: 16px;
+      padding: 16px 32px;
+      box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+    }
+
+    .btn-hideout:hover {
+      background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
+      box-shadow: 0 6px 20px rgba(255, 107, 53, 0.6);
+    }
+
+    button:disabled {
+      background: #555;
+      color: #999;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    button:disabled:hover {
+      transform: none;
+      box-shadow: none;
+    }
+
+    .log-section {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 16px;
+      border-radius: 4px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .log-entry {
+      padding: 8px;
+      margin-bottom: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      border-left: 3px solid #4caf50;
+      font-size: 13px;
+    }
+
+    .log-time {
+      color: #999;
+      font-size: 11px;
+      margin-right: 8px;
+    }
+
+    .info-box {
+      background: rgba(33, 150, 243, 0.1);
+      border: 1px solid #2196f3;
+      padding: 16px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+
+    .info-box h3 {
+      color: #2196f3;
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    .info-box p {
+      color: #e0e0e0;
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      color: #e0e0e0;
+      font-size: 14px;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #ff6b35;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+
+    .status-enabled {
+      background: #4caf50;
+      color: white;
+    }
+
+    .status-disabled {
+      background: #f44336;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>POE Trade Alert Test Page</h1>
+      <p class="subtitle">Test the POE Trade Alert Extension</p>
+    </header>
+
+    <div class="info-box">
+      <h3>📋 Instructions</h3>
+      <p>1. Make sure the POE Trade Alert extension is installed and enabled</p>
+      <p>2. <strong>Click "Enable Notifications" below</strong> to allow browser notifications</p>
+      <p>3. Use the buttons below to trigger test notifications</p>
+      <p>4. The extension should intercept the notifications and click the "Travel to hideout" button</p>
+      <p>5. After clicking, you'll see a confirmation dialog to continue or cancel monitoring</p>
+    </div>
+
+    <div class="test-section" id="permissionSection">
+      <h2>Notification Permission <span id="permissionStatus" class="status-badge status-disabled">Not Granted</span></h2>
+      <button onclick="requestNotificationPermission()" class="btn-primary" id="requestPermBtn">
+        🔔 Enable Notifications
+      </button>
+      <p style="color: #999; font-size: 13px; margin-top: 8px;">Click this button to allow browser notifications for testing</p>
+      
+      <div id="deniedHelp" style="display: none; margin-top: 12px; padding: 12px; background: rgba(244, 67, 54, 0.1); border: 1px solid #f44336; border-radius: 4px;">
+        <h3 style="color: #f44336; font-size: 14px; margin-bottom: 8px;">⚠️ Permission Denied</h3>
+        <p style="color: #e0e0e0; font-size: 12px; line-height: 1.5; margin-bottom: 8px;">
+          You previously denied notification permission. To enable it:
+        </p>
+        <ol style="color: #e0e0e0; font-size: 12px; line-height: 1.6; margin-left: 20px;">
+          <li>Click the 🔒 or ⓘ icon in the address bar (left of the URL)</li>
+          <li>Find "Notifications" and change it to "Allow"</li>
+          <li>Refresh this page</li>
+        </ol>
+        <p style="color: #999; font-size: 11px; margin-top: 8px;">
+          Alternative: Chrome Settings → Privacy and security → Site settings → Notifications → find this page and allow
+        </p>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>Alert Tests</h2>
+      <div class="button-group">
+        <button onclick="testAlert('New trade offer available!')" class="btn-primary">
+          Test Alert #1
+        </button>
+        <button onclick="testAlert('You have received a whisper!')" class="btn-secondary">
+          Test Alert #2
+        </button>
+        <button onclick="testAlert('Trade request from player')" class="btn-primary">
+          Test Alert #3
+        </button>
+      </div>
+
+      <div class="controls">
+        <input type="text" id="customAlertText" placeholder="Enter custom alert message...">
+        <button onclick="customAlert()" class="btn-secondary">
+          Send Custom Alert
+        </button>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>Hideout Button <span id="buttonStatus" class="status-badge status-enabled">Enabled</span></h2>
+      <div class="button-group">
+        <button id="hideoutButton" onclick="hideoutClicked()" class="btn-hideout">
+          🏠 Travel to Hideout
+        </button>
+        <button onclick="toggleHideoutButton()" class="btn-secondary">
+          Toggle Button State
+        </button>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>Action Log</h2>
+      <div class="log-section" id="logSection">
+        <p style="color: #999; text-align: center;">No actions yet. Trigger an alert to start testing.</p>
+      </div>
+      <div style="margin-top: 12px;">
+        <button onclick="clearLog()" class="btn-danger">Clear Log</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let logEntries = [];
+
+    function addLog(message) {
+      const timestamp = new Date().toLocaleTimeString();
+      logEntries.push({ time: timestamp, message: message });
+      updateLogDisplay();
+    }
+
+    function updateLogDisplay() {
+      const logSection = document.getElementById('logSection');
+      if (logEntries.length === 0) {
+        logSection.innerHTML = '<p style="color: #999; text-align: center;">No actions yet. Trigger an alert to start testing.</p>';
+        return;
+      }
+
+      logSection.innerHTML = logEntries.map(entry => 
+        `<div class="log-entry">
+          <span class="log-time">${entry.time}</span>
+          <span>${entry.message}</span>
+        </div>`
+      ).reverse().join('');
+    }
+
+    // Check and update notification permission status
+    function updatePermissionStatus() {
+      const statusBadge = document.getElementById('permissionStatus');
+      const requestBtn = document.getElementById('requestPermBtn');
+      
+      if (!("Notification" in window)) {
+        statusBadge.textContent = 'Not Supported';
+        statusBadge.className = 'status-badge status-disabled';
+        requestBtn.disabled = true;
+        addLog('⚠️ Browser notifications are not supported');
+        return;
+      }
+      
+      const deniedHelp = document.getElementById('deniedHelp');
+      
+      if (Notification.permission === 'granted') {
+        statusBadge.textContent = 'Granted ✓';
+        statusBadge.className = 'status-badge status-enabled';
+        requestBtn.textContent = '✓ Notifications Enabled';
+        requestBtn.disabled = true;
+        deniedHelp.style.display = 'none';
+        addLog('✅ Notification permission granted');
+      } else if (Notification.permission === 'denied') {
+        statusBadge.textContent = 'Denied ✗';
+        statusBadge.className = 'status-badge status-disabled';
+        requestBtn.textContent = '✗ Permission Denied';
+        requestBtn.disabled = true;
+        deniedHelp.style.display = 'block';
+        addLog('❌ Notification permission denied. See instructions above to fix.');
+      } else {
+        statusBadge.textContent = 'Not Granted';
+        statusBadge.className = 'status-badge status-disabled';
+        requestBtn.textContent = '🔔 Enable Notifications';
+        requestBtn.disabled = false;
+        deniedHelp.style.display = 'none';
+      }
+    }
+    
+    // Request notification permission
+    function requestNotificationPermission() {
+      if (!("Notification" in window)) {
+        alert("This browser does not support notifications");
+        return;
+      }
+      
+      addLog('📢 Requesting notification permission...');
+      
+      Notification.requestPermission().then(function(permission) {
+        addLog(`Permission result: ${permission}`);
+        updatePermissionStatus();
+      });
+    }
+    
+    function testAlert(message) {
+      if ("Notification" in window) {
+        if (Notification.permission === "granted") {
+          addLog(`Triggering notification: "${message}"`);
+          new Notification("POE Trade Alert", {
+            body: message,
+            icon: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+          });
+        } else {
+          addLog(`⚠️ Notification permission not granted. Click "Enable Notifications" first.`);
+        }
+      } else {
+        addLog(`⚠️ Notifications not supported in this browser`);
+      }
+    }
+
+    function customAlert() {
+      const input = document.getElementById('customAlertText');
+      const message = input.value.trim();
+      if (message) {
+        if ("Notification" in window && Notification.permission === "granted") {
+          addLog(`Triggering custom notification: "${message}"`);
+          new Notification("POE Trade Alert", { body: message });
+        } else {
+          addLog(`⚠️ Notification permission not granted. Click "Enable Notifications" first.`);
+        }
+        input.value = '';
+      } else {
+        addLog('⚠️ Please enter a message first!');
+      }
+    }
+
+    function hideoutClicked() {
+      addLog('🏠 Hideout button was clicked!');
+      console.log('[Test Page] Hideout button clicked');
+    }
+
+    function toggleHideoutButton() {
+      const button = document.getElementById('hideoutButton');
+      const statusBadge = document.getElementById('buttonStatus');
+      
+      if (button.disabled) {
+        button.disabled = false;
+        statusBadge.textContent = 'Enabled';
+        statusBadge.className = 'status-badge status-enabled';
+        addLog('✅ Hideout button enabled');
+      } else {
+        button.disabled = true;
+        statusBadge.textContent = 'Disabled';
+        statusBadge.className = 'status-badge status-disabled';
+        addLog('❌ Hideout button disabled');
+      }
+    }
+
+    function clearLog() {
+      logEntries = [];
+      updateLogDisplay();
+    }
+
+    // Initialize on page load
+    window.addEventListener('DOMContentLoaded', function() {
+      addLog('✨ Test page loaded. Extension should be monitoring for notifications.');
+      updatePermissionStatus();
+    });
+  </script>
+</body>
+</html>

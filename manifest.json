@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "POE Trade Alert Auto-Clicker",
+  "version": "1.0.0",
+  "description": "Monitors Path of Exile trade alerts and auto-clicks 'Travel to hideout' button with user confirmation",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://www.pathofexile.com/*",
+    "file:///*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "inject.js",
+        "PoeLogo.png"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "PoeLogo.png",
+      "48": "PoeLogo.png",
+      "128": "PoeLogo.png"
+    }
+  },
+  "icons": {
+    "16": "PoeLogo.png",
+    "48": "PoeLogo.png",
+    "128": "PoeLogo.png"
+  }
+}
