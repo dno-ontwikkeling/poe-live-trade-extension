@@ -274,7 +274,9 @@ document.addEventListener('DOMContentLoaded', () => {
       intercepted: '<span class="badge badge-info">Intercepted</span>',
       button_clicked: '<span class="badge badge-success">Button Clicked</span>',
       button_not_found:
-        '<span class="badge badge-warning">Button Not Found</span>'
+        '<span class="badge badge-warning">Button Not Found</span>',
+      auto_click_disabled:
+        '<span class="badge badge-info">Auto-click Off</span>'
     }
     return badges[action] || '<span class="badge">Unknown</span>'
   }
