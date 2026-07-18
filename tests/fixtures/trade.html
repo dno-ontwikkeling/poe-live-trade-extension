@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Fake POE Trade</title>
+  </head>
+  <body>
+    <h1>Fake POE Trade page</h1>
+
+    <!-- Buttons the extension should find and click, in the order it clicks
+         them. Each records the click in the shared DOM so the test can assert. -->
+    <button id="hideout" data-clicked="false">Travel to hideout</button>
+    <button id="teleport" data-clicked="false">In demand. Teleport anyway?</button>
+
+    <!-- A decoy that also mentions "hideout" - the extension must NOT click it. -->
+    <a id="decoy" href="#" data-clicked="false">Go to my hideout stash</a>
+
+    <script>
+      for (const el of document.querySelectorAll('[data-clicked]')) {
+        el.addEventListener('click', event => {
+          event.preventDefault()
+          el.dataset.clicked = 'true'
+        })
+      }
+    </script>
+  </body>
+</html>

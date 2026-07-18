@@ -320,6 +320,10 @@ if (window.__POE_CONTENT_SCRIPT_LOADED) {
         })
     }
 
+    // Readiness marker in the shared DOM so tests (and debugging) can tell the
+    // content script is live and listening for intercepted notifications.
+    document.documentElement.setAttribute('data-poe-ready', '1')
+
     log(
       'Content script initialized - enabled:',
       extensionEnabled,

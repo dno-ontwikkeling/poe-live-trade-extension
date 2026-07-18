@@ -79,6 +79,23 @@ Click the extension icon to open the popup with these controls:
    - Confirm the hideout button is clicked automatically
    - Verify the confirmation dialog appears after clicking
 
+## Automated Testing
+
+End-to-end tests use [Playwright](https://playwright.dev), which loads the
+unpacked extension into Chromium and drives the full flow (notification
+intercepted → hideout button clicked → confirmation shown).
+
+```bash
+npm install
+npx playwright install chromium   # one-time browser download
+npm test                          # headless
+npm run test:headed               # watch it run in a visible browser
+```
+
+Tests live in `tests/`. `tests/fixtures/trade.html` is served in place of the
+real trade page (via request interception) so the background worker
+auto-injects the scripts exactly as it would on `pathofexile.com/trade`.
+
 ## How It Works
 
 ### Architecture
