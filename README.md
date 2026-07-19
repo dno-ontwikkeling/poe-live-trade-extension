@@ -2,7 +2,7 @@
 
 A Chrome/Edge extension for **Path of Exile** trade. When a live-search trade
 alert fires, it automatically clicks the **"Travel to hideout"** button so you
-never miss a listing — then shows an on-page confirmation before it does it
+never miss a listing, then shows an on-page confirmation before it does it
 again.
 
 <p align="center">
@@ -12,19 +12,19 @@ again.
 
 ## Features
 
-- **Alert monitoring** — intercepts the browser notifications POE trade fires on new listings.
-- **Auto-click** — clicks "Travel to hideout" (and a follow-up "Teleport anyway?") the moment an alert lands.
-- **Safe by design** — after each click auto-click switches off and asks you to confirm before continuing, so it never spams teleports.
-- **Precise matching** — only the real hideout button is clicked; decoy links, disabled and hidden buttons are skipped.
-- **Alert log** — every intercepted alert with a timestamp and what happened.
-- **Local only** — no servers, no tracking, no network requests.
+- **Alert monitoring**: intercepts the browser notifications POE trade fires on new listings.
+- **Auto-click**: clicks "Travel to hideout" (and a follow-up "Teleport anyway?") the moment an alert lands.
+- **Safe by design**: after each click auto-click switches off and asks you to confirm before continuing, so it never spams teleports.
+- **Precise matching**: only the real hideout button is clicked; decoy links, disabled and hidden buttons are skipped.
+- **Alert log**: every intercepted alert with a timestamp and what happened.
+- **Local only**: no servers, no tracking, no network requests.
 
 ## Install
 
 ### From a release (recommended)
 
 1. Go to the [**Releases**](../../releases) page and download the latest `poe-trade-alert-<version>.zip`.
-2. **Unzip** it to a permanent folder (e.g. `C:\Tools\poe-trade-alert`). Don't delete this folder later — Chrome loads the extension from it every launch.
+2. **Unzip** it to a permanent folder (e.g. `C:\Tools\poe-trade-alert`). Don't delete this folder later. Chrome loads the extension from it every launch.
 3. Open `chrome://extensions` (or `edge://extensions`).
 4. Turn on **Developer mode** (top-right toggle).
 5. Click **Load unpacked** and select the unzipped folder.
@@ -39,15 +39,15 @@ again.
 
 1. Open your live search on `https://www.pathofexile.com/trade`.
 2. Click the extension icon and turn on **both** toggles:
-   - **Enable extension** — starts monitoring the trade page.
-   - **Auto-click hideout** — lets it click the button for you.
+   - **Enable extension**: starts monitoring the trade page.
+   - **Auto-click hideout**: lets it click the button for you.
 3. Leave the tab open. When an alert fires the extension:
    - clicks **Travel to hideout** (and **Teleport anyway?** if the whisper is in demand),
    - logs the alert in the popup,
    - shows an on-page prompt: **Continue monitoring** or **Stay disabled**.
 4. Click **Continue monitoring** to arm it for the next alert.
 
-The confirmation step is deliberate — it stops a burst of alerts from
+The confirmation step is deliberate: it stops a burst of alerts from
 teleporting you around repeatedly.
 
 ### Popup controls
@@ -98,9 +98,9 @@ latest pre-release to a stable release.
 
 ### Debugging
 
-- **Content script** — open the trade page, F12, look for `[POE Extension]` logs.
-- **Service worker** — `chrome://extensions` → the extension's "service worker" link.
-- **Popup** — right-click the icon → Inspect popup.
+- **Content script**: open the trade page, F12, look for `[POE Extension]` logs.
+- **Service worker**: `chrome://extensions` → the extension's "service worker" link.
+- **Popup**: right-click the icon → Inspect popup.
 
 After editing code, hit the refresh icon on the extension card and reload any
 open trade tabs.
@@ -126,7 +126,7 @@ poe-live-trade-extension/
 - Runs only on `pathofexile.com/trade` pages (and the local test fixture).
 - No data leaves your machine; no external network requests.
 - State stored locally in `chrome.storage.local`.
-- Fully open source — read every file before installing.
+- Fully open source. Read every file before installing.
 
 ## Limitations
 
