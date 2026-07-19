@@ -6,8 +6,8 @@ never miss a listing — then shows an on-page confirmation before it does it
 again.
 
 <p align="center">
-  <img src="docs/screenshots/popup.png" alt="Extension popup" width="360" />
-  <img src="docs/screenshots/confirmation.png" alt="On-page confirmation prompt" width="560" />
+  <img src="docs/screenshots/popup.png" alt="Extension popup" width="330" />
+  <img src="docs/screenshots/confirmation.png" alt="On-page confirmation prompt" width="430" />
 </p>
 
 ## Features

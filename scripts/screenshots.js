@@ -94,9 +94,11 @@ async function getServiceWorker (ctx) {
   )
 
   // Wait for the auto-click to land and the confirmation prompt to appear.
-  await page.waitForSelector('#poe-extension-notification', { state: 'visible' })
+  const dialog = page.locator('#poe-extension-notification')
+  await dialog.waitFor({ state: 'visible' })
   await page.waitForTimeout(400) // let the entrance transition settle
-  await page.screenshot({ path: path.join(OUT_DIR, 'confirmation.png') })
+  // Capture just the prompt, not the test page behind it.
+  await dialog.screenshot({ path: path.join(OUT_DIR, 'confirmation.png') })
   console.log('saved confirmation.png')
 
   await context.close()
