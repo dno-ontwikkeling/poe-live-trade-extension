@@ -2,6 +2,7 @@
   "name": "poe-trade-alert-auto-clicker",
   "version": "1.1.0",
   "description": "Chrome extension that auto-clicks the POE trade 'Travel to hideout' button",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "test": "playwright test",

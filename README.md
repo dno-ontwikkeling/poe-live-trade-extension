@@ -153,6 +153,29 @@ poe-live-trade-extension/
 ### v1.0.0
 - Initial release: alert interception, auto-click, confirmation dialog, logging, test page.
 
+## Contributing
+
+Contributions are welcome.
+
+1. Fork the repo and create a branch (`git checkout -b fix/short-description`).
+2. Make your change. Run `npm test` and keep the existing code style.
+3. Use [Conventional Commits](https://www.conventionalcommits.org) (`feat:`, `fix:`, `docs:`, ...); the release pipeline reads them to version releases.
+4. Open a pull request against `master` describing what changed and why.
+
+For anything non-trivial, open an issue first so we can agree on the approach.
+
+## Reporting bugs
+
+Found a bug or have a feature request? Open an issue on the
+[**Issues**](../../issues) page. For bugs, please include:
+
+- what you did and what you expected,
+- what actually happened (screenshots help),
+- your browser and version, and the extension version,
+- any relevant console output (F12 → Console, look for `[POE Extension]`).
+
+Do not report security issues in public issues; contact the maintainer directly instead.
+
 ## License
 
-Free to use and modify for personal use.
+Released under the [MIT License](LICENSE).
