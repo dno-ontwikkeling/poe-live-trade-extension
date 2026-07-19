@@ -1,270 +1,158 @@
-# POE Trade Alert Auto-Clicker Extension
+# POE Trade Alert Auto-Clicker
 
-A Chrome extension that monitors Path of Exile trade website alerts and automatically clicks the "Travel to hideout" button with user confirmation.
+A Chrome/Edge extension for **Path of Exile** trade. When a live-search trade
+alert fires, it automatically clicks the **"Travel to hideout"** button so you
+never miss a listing — then shows an on-page confirmation before it does it
+again.
+
+<p align="center">
+  <img src="docs/screenshots/popup.png" alt="Extension popup" width="360" />
+  <img src="docs/screenshots/confirmation.png" alt="On-page confirmation prompt" width="560" />
+</p>
 
 ## Features
 
-✨ **Alert Monitoring** - Intercepts browser notifications (Notification API) on POE trade pages
-🎯 **Auto-Click** - Automatically clicks "Travel to hideout" button when alert is detected
-🛡️ **Safe Operation** - Requires user confirmation after each click to prevent spam
-📊 **Debug Log** - Shows all intercepted alerts for debugging
-⚙️ **Easy Control** - Toggle extension on/off and control auto-click behavior
-🧪 **Test Page** - Includes a test page to verify functionality
+- **Alert monitoring** — intercepts the browser notifications POE trade fires on new listings.
+- **Auto-click** — clicks "Travel to hideout" (and a follow-up "Teleport anyway?") the moment an alert lands.
+- **Safe by design** — after each click auto-click switches off and asks you to confirm before continuing, so it never spams teleports.
+- **Precise matching** — only the real hideout button is clicked; decoy links, disabled and hidden buttons are skipped.
+- **Alert log** — every intercepted alert with a timestamp and what happened.
+- **Local only** — no servers, no tracking, no network requests.
 
-## Installation
+## Install
 
-### Method 1: Load as Unpacked Extension (For Development/Testing)
+### From a release (recommended)
 
-1. **Download/Clone the extension files** to a local folder (e.g., `C:\Projects\PoeExtension`)
+1. Go to the [**Releases**](../../releases) page and download the latest `poe-trade-alert-<version>.zip`.
+2. **Unzip** it to a permanent folder (e.g. `C:\Tools\poe-trade-alert`). Don't delete this folder later — Chrome loads the extension from it every launch.
+3. Open `chrome://extensions` (or `edge://extensions`).
+4. Turn on **Developer mode** (top-right toggle).
+5. Click **Load unpacked** and select the unzipped folder.
+6. *(Optional)* Click the puzzle-piece icon in the toolbar and **pin** "Hideout Auto-Clicker" so it stays visible.
 
-2. **Create placeholder icons** (or use your own):
-   - You need three icon files: `icon16.png`, `icon48.png`, `icon128.png`
-   - You can create simple colored squares as placeholders or use proper icons
-
-3. **Open Chrome Extensions page**:
-   - Go to `chrome://extensions/`
-   - Or click the three dots menu → More tools → Extensions
-
-4. **Enable Developer Mode**:
-   - Toggle the "Developer mode" switch in the top-right corner
-
-5. **Load the extension**:
-   - Click "Load unpacked"
-   - Select the `PoeExtension` folder
-   - The extension should now appear in your extensions list
-
-6. **Pin the extension** (optional):
-   - Click the puzzle piece icon in Chrome toolbar
-   - Find "POE Trade Alert Auto-Clicker"
-   - Click the pin icon to keep it visible
+> **Why unpacked?** Chrome blocks self-hosted `.crx` installs on Windows/macOS,
+> so a downloaded zip loaded via Developer mode is the supported way to install
+> outside the Web Store. Updating = download the new zip, replace the folder
+> contents, and hit the refresh icon on the extension card.
 
 ## Usage
 
-### On Path of Exile Trade Website
+1. Open your live search on `https://www.pathofexile.com/trade`.
+2. Click the extension icon and turn on **both** toggles:
+   - **Enable extension** — starts monitoring the trade page.
+   - **Auto-click hideout** — lets it click the button for you.
+3. Leave the tab open. When an alert fires the extension:
+   - clicks **Travel to hideout** (and **Teleport anyway?** if the whisper is in demand),
+   - logs the alert in the popup,
+   - shows an on-page prompt: **Continue monitoring** or **Stay disabled**.
+4. Click **Continue monitoring** to arm it for the next alert.
 
-1. **Navigate** to `https://www.pathofexile.com/trade/search/`
-2. **Set up your live search** as you normally would
-3. **Enable the extension** by clicking the extension icon and ensuring the toggle is ON
-4. **Wait for alerts** - When a trade alert appears:
-   - The extension intercepts the alert
-   - Automatically clicks "Travel to hideout" button (if found and enabled)
-   - Shows a confirmation dialog: "Continue monitoring or cancel?"
-   - You must click "Continue" to re-enable auto-click for the next alert
+The confirmation step is deliberate — it stops a burst of alerts from
+teleporting you around repeatedly.
 
-### Extension Popup Controls
+### Popup controls
 
-Click the extension icon to open the popup with these controls:
+| Control | What it does |
+| --- | --- |
+| **Enable extension** | Master on/off. Monitors POE trade tabs. |
+| **Auto-click hideout** | Clicks the hideout button when an alert fires. |
+| **Status** | Green = actively monitoring. |
+| **Alert log** | Recent alerts with timestamp + outcome badge. |
+| **Clear** | Empties the log. |
 
-- **Enable Extension Toggle** - Turn the extension on/off
-- **Status Indicator** - Shows if monitoring is active
-- **Enable Auto-Click Button** - Manually re-enable auto-clicking
-- **Disable Auto-Click Button** - Manually disable auto-clicking
-- **Alert Log** - View all intercepted alerts with timestamps and actions
-- **Clear Button** - Clear the alert log
+## How it works
 
-### Testing
-
-1. **Open the test page**:
-   - Navigate to `file:///C:/Projects/PoeExtension/test.html` (adjust path as needed)
-   - Or right-click `test.html` → Open with → Chrome
-
-2. **Run tests**:
-   - Click "Test Alert" buttons to trigger window alerts
-   - Enter custom alert messages
-   - Toggle the hideout button to test enabled/disabled states
-   - View the action log to see what happened
-
-3. **Verify extension behavior**:
-   - Check if alerts are intercepted
-   - Confirm the hideout button is clicked automatically
-   - Verify the confirmation dialog appears after clicking
-
-## Automated Testing
-
-End-to-end tests use [Playwright](https://playwright.dev), which loads the
-unpacked extension into Chromium and drives the full flow (notification
-intercepted → hideout button clicked → confirmation shown).
-
-```bash
-npm install
-npx playwright install chromium   # one-time browser download
-npm test                          # headless
-npm run test:headed               # watch it run in a visible browser
-```
-
-Tests live in `tests/`. `tests/fixtures/trade.html` is served in place of the
-real trade page (via request interception) so the background worker
-auto-injects the scripts exactly as it would on `pathofexile.com/trade`.
-
-## How It Works
-
-### Architecture
-
-1. **Content Script** (`content.js`):
-   - Runs on POE trade pages and test page
-   - Receives intercepted notifications from the page context (`inject.js`)
-   - Waits for and clicks the "Travel to hideout" button via a `MutationObserver`
-   - Shows custom confirmation dialog after clicking
-   - Maintains alert log
-
-2. **Background Worker** (`background.js`):
-   - Manages global state
-   - Stores alert history
-   - Updates extension badge with alert count
-
-3. **Popup UI** (`popup.html`, `popup.js`, `popup.css`):
-   - Provides user interface for settings
-   - Displays alert log with real-time updates
-   - Controls for enabling/disabling features
-
-### Alert Interception Flow
+1. **`inject.js`** runs in the page and wraps the `Notification` API with a `Proxy` so it can see every trade alert the site raises.
+2. **`content.js`** receives those alerts, uses a `MutationObserver` to wait for the "Travel to hideout" button, clicks it, then shows the confirmation prompt.
+3. **`background.js`** (MV3 service worker) holds state in `chrome.storage.local`, keeps the alert history, and injects the scripts into trade tabs.
+4. **`popup.*`** is the UI: toggles, status and the alert log.
 
 ```
-1. Website creates a browser Notification
-   ↓
-2. Extension intercepts the notification (Notification API proxy)
-   ↓
-3. Logs the alert (timestamp, message)
-   ↓
-4. If extension & auto-click enabled:
-   - Search for hideout button
-   - Click if found and enabled
-   - Show confirmation dialog
-   ↓
-5. User chooses:
-   - Continue: Re-enable auto-click
-   - Cancel: Keep auto-click disabled
-```
-
-## Configuration
-
-### Settings stored in Chrome Storage:
-- `extensionEnabled` (boolean) - Master on/off switch
-
-### Runtime State:
-- `autoClickEnabled` - Whether auto-click is currently active
-- `alertLog` - Array of recent alerts
-
-## Troubleshooting
-
-### Extension not working?
-- Check if extension is enabled in `chrome://extensions/`
-- Verify you're on the correct URL pattern
-- Check browser console for errors (F12 → Console tab)
-
-### Button not being clicked?
-- Ensure the button text contains "travel to hideout" or "hideout"
-- Button must be visible and not disabled
-- Check the alert log to see if button was found
-
-### Test page not working?
-- Make sure you granted file access:
-  - Go to `chrome://extensions/`
-  - Find the extension
-  - Click "Details"
-  - Enable "Allow access to file URLs"
-
-### Alerts not intercepted?
-- Reload the page after installing/updating extension
-- Check if content script is injected (F12 → Sources → Content scripts)
-
-## File Structure
-
-```
-PoeExtension/
-├── manifest.json       # Extension configuration
-├── background.js       # Service worker
-├── content.js         # Content script (alert interception)
-├── popup.html         # Extension popup UI
-├── popup.js           # Popup logic
-├── popup.css          # Popup styling
-├── test.html          # Test page for development
-├── icon16.png         # Extension icon (16x16)
-├── icon48.png         # Extension icon (48x48)
-├── icon128.png        # Extension icon (128x128)
-└── README.md          # This file
+alert fires → intercepted → logged → (if enabled) click hideout
+   → click "teleport anyway?" → auto-click off → confirmation prompt
 ```
 
 ## Development
 
+```bash
+npm install
+npx playwright install chromium   # one-time browser download
+
+npm test              # headless E2E (Playwright loads the unpacked extension)
+npm run test:headed   # watch it run in a visible browser
+npm run launch        # open a real browser with the interactive test harness
+npm run screenshots   # regenerate docs/screenshots/*.png
+```
+
+The E2E tests and the harness serve `tests/fixtures/` in place of the real
+trade page (via request interception), so the extension injects and behaves
+exactly as it would on `pathofexile.com/trade`.
+
+### Building a release
+
+Pushing a Conventional Commit (`feat:` / `fix:`) to `master` triggers
+`.github/workflows/release.yml`, which bumps the version, packages a clean zip
+(only the files the extension loads, with `manifest.json` version synced), and
+publishes a **pre-release**. Run the **Promote Release** workflow to flip the
+latest pre-release to a stable release.
+
 ### Debugging
 
-1. **Content Script**:
-   - Open page with F12
-   - Look for `[POE Extension]` logs in console
+- **Content script** — open the trade page, F12, look for `[POE Extension]` logs.
+- **Service worker** — `chrome://extensions` → the extension's "service worker" link.
+- **Popup** — right-click the icon → Inspect popup.
 
-2. **Background Worker**:
-   - Go to `chrome://extensions/`
-   - Click "service worker" link under extension
-   - View logs and inspect state
+After editing code, hit the refresh icon on the extension card and reload any
+open trade tabs.
 
-3. **Popup**:
-   - Right-click extension icon → Inspect popup
-   - View console for popup-specific logs
+## File structure
 
-### Making Changes
+```
+poe-live-trade-extension/
+├── manifest.json          # MV3 extension config
+├── background.js          # Service worker (state, history, injection)
+├── content.js             # Alert handling + auto-click + confirmation
+├── inject.js              # Page-context Notification interceptor
+├── popup.html/.css/.js    # Toolbar popup UI
+├── PoeLogo.png, icon*.png # Icons
+├── scripts/               # launch.js, screenshots.js
+├── tests/                 # Playwright E2E + fixtures/harness
+├── docs/screenshots/      # README images
+└── .github/workflows/     # Release pipeline
+```
 
-After modifying code:
-1. Go to `chrome://extensions/`
-2. Click the refresh icon on the extension card
-3. Reload any open POE trade pages
+## Security & privacy
 
-## Security & Privacy
-
-- ✅ Only runs on specified domains (POE trade website and local test page)
-- ✅ No data sent to external servers
-- ✅ All data stored locally in Chrome storage
-- ✅ No network requests made by the extension
-- ✅ Open source - inspect all code before installing
+- Runs only on `pathofexile.com/trade` pages (and the local test fixture).
+- No data leaves your machine; no external network requests.
+- State stored locally in `chrome.storage.local`.
+- Fully open source — read every file before installing.
 
 ## Limitations
 
-- Only works on Chromium-based browsers (Chrome, Edge, Brave, etc.)
-- Requires manual confirmation after each auto-click (by design)
-- Button search is text-based (matches "travel to hideout")
-- Limited to 20 alerts in history (automatically cleaned)
+- Chromium browsers only (Chrome, Edge, Brave, …).
+- Confirmation required after each auto-click (by design).
+- Button matching is text-based ("travel to hideout").
+- Alert history capped at 20 entries.
 
-## Known Issues
+## Version history
 
-- None at this time
+### v1.2.0
+- Added GitHub Actions release pipeline (clean, Web-Store-ready zip) and Promote Release workflow.
+- Documented install-from-zip flow; added popup + confirmation screenshots.
 
-## Future Enhancements
+### v1.1.0
+- Persisted state in `chrome.storage.local` (survives MV3 worker restarts).
+- Read state per-message (no stale globals); fixed init race.
+- Single global auto-click state (no per-tab key leak).
+- Tightened button matching to "travel to hideout".
+- Replaced polling with a `MutationObserver`.
+- Rewrote the page interceptor as a `Proxy` (preserves prototype, statics, `instanceof`).
+- Fixed dangling message ports; removed unused `notifications` permission; narrowed `web_accessible_resources`.
 
-- [ ] Customizable button text patterns
-- [ ] Keyboard shortcuts
-- [ ] Sound notifications
-- [ ] Statistics dashboard
-- [ ] Export alert log
+### v1.0.0
+- Initial release: alert interception, auto-click, confirmation dialog, logging, test page.
 
 ## License
 
 Free to use and modify for personal use.
-
-## Support
-
-If you encounter issues:
-1. Check the troubleshooting section above
-2. Review console logs for errors
-3. Test with the included test.html page
-4. Verify extension permissions
-
-## Version History
-
-### v1.1.0 (2026-07-18)
-- Fixed state loss on MV3 service worker restart (state now persisted in `chrome.storage.local`)
-- Fixed init race in background worker (state read per-message, no stale globals)
-- Removed per-tab storage keys that leaked entries forever; single global auto-click state
-- Tightened button matching to "travel to hideout" (avoids clicking unrelated links)
-- Replaced 20ms polling with a `MutationObserver`
-- Rewrote page-context interceptor as a `Proxy` (preserves prototype, statics, live permission, `instanceof`)
-- Fixed dangling message ports in the background listener
-- Removed unused `notifications` permission and narrowed `web_accessible_resources`
-- Gated debug logging behind a `DEBUG` flag
-
-### v1.0.0 (2026-02-03)
-- Initial release
-- Alert interception
-- Auto-click functionality
-- User confirmation dialog
-- Debug logging
-- Test page
