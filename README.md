@@ -1,6 +1,7 @@
-# POE Trade Alert Auto-Clicker
+# Path of Exile Trade Auto-Clicker
 
-A Chrome/Edge extension for **Path of Exile** trade. When a live-search trade
+An unofficial Chrome/Edge extension, not affiliated with or endorsed by Grinding
+Gear Games. When a live-search trade
 alert fires, it automatically clicks the **"Travel to hideout"** button so you
 never miss a listing, then shows an on-page confirmation before it does it
 again.
@@ -114,8 +115,8 @@ poe-live-trade-extension/
 ├── content.js             # Alert handling + auto-click + confirmation
 ├── inject.js              # Page-context Notification interceptor
 ├── popup.html/.css/.js    # Toolbar popup UI
-├── PoeLogo.png, icon*.png # Icons
-├── scripts/               # launch.js, screenshots.js
+├── icon*.png              # Extension icons (see scripts/make-icons.js)
+├── scripts/               # launch.js, screenshots.js, make-icons.js
 ├── tests/                 # Playwright E2E + fixtures/harness
 ├── docs/screenshots/      # README images
 └── .github/workflows/     # Release pipeline
