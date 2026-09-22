@@ -126,10 +126,28 @@ Injects the content script that detects an incoming trade alert and clicks the h
 The "Travel to hideout" button only exists on the Path of Exile trade site. This host permission scopes the extension to that site and nothing else.
 ```
 
-## Gebruik van gegevens
+## Gebruik je externe code?
 
-Tick **does not collect user data** and certify all three compliance
-statements. The extension makes no network requests and transmits nothing.
+**Nee.** Verified against the shipped files: no `eval`, no `new Function`, no
+dynamic `import()`, and no remote `<script>`. The only script tag in
+`popup.html` points at the bundled `popup.js`. The pathofexile.com URLs in the
+source are match patterns, not code loads. Leave the justification box empty.
+
+## Datagebruik
+
+**Leave all nine categories unchecked.** The store defines "collect" as
+transmitting data off the user's device, and the extension makes no network
+requests at all.
+
+The category worth understanding is **Websitecontent**: `alertHistory` does
+hold trade listing text, which is website content. It is written to
+`chrome.storage.local`, never transmitted, and erased on uninstall. That is
+local storage, not collection, so it stays unchecked. The privacy policy states
+this outright under "Data Stored In Your Browser" if a reviewer asks.
+
+Tick **all three** kennisgevingen. All are true: nothing is sold or transferred
+to third parties, nothing is used outside the single purpose, and nothing feeds
+creditworthiness or lending decisions.
 
 ## Privacybeleid-URL
 
