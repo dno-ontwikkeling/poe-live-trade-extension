@@ -1,16 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "POE Trade Alert Auto-Clicker",
-  "version": "1.1.0",
-  "description": "Monitors Path of Exile trade alerts and auto-clicks 'Travel to hideout' button with user confirmation",
+  "name": "Path of Exile Trade Auto-Clicker",
+  "version": "1.3.0",
+  "description": "Unofficial. Clicks \"Travel to hideout\" when a Path of Exile trade alert fires, then asks you to confirm before the next one.",
   "permissions": [
     "storage",
     "activeTab",
     "scripting"
   ],
   "host_permissions": [
-    "https://www.pathofexile.com/*",
-    "file:///*"
+    "https://www.pathofexile.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -18,26 +17,24 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "inject.js",
-        "PoeLogo.png"
+        "inject.js"
       ],
       "matches": [
-        "https://www.pathofexile.com/*",
-        "file:///*"
+        "https://www.pathofexile.com/*"
       ]
     }
   ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "PoeLogo.png",
-      "48": "PoeLogo.png",
-      "128": "PoeLogo.png"
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
     }
   },
   "icons": {
-    "16": "PoeLogo.png",
-    "48": "PoeLogo.png",
-    "128": "PoeLogo.png"
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
   }
 }

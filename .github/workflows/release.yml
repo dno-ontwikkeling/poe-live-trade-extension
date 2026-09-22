@@ -51,7 +51,7 @@ jobs:
           # Only ship files the extension actually loads
           cp manifest.json background.js content.js inject.js \
              popup.html popup.css popup.js \
-             PoeLogo.png icon16.png icon48.png icon128.png \
+             icon16.png icon48.png icon128.png \
              "$dist/"
 
           # Sync manifest version to the release version

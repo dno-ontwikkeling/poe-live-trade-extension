@@ -2,6 +2,10 @@ node_modules/
 *.log
 .DS_Store
 
+# Build output
+dist/
+poe-trade-alert-*.zip
+
 # Playwright
 test-results/
 playwright-report/
