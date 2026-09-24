@@ -61,11 +61,25 @@ jobs:
           cd "$dist"
           zip -r "../poe-trade-alert-${version}.zip" .
 
-      - name: Create release
+      # This repository has immutable releases enabled, which forbids
+      # attaching assets once a release is published. So the release is
+      # created as a draft, the zip is uploaded to the draft, and only then
+      # is it published as a prerelease.
+      - name: Create draft release with the package
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.tag.outputs.new_tag }}
           name: ${{ needs.tag.outputs.new_tag }}
           body: ${{ needs.tag.outputs.changelog }}
+          draft: true
           prerelease: true
           files: poe-trade-alert-${{ needs.tag.outputs.new_version }}.zip
+
+      - name: Publish the draft as a prerelease
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit "${{ needs.tag.outputs.new_tag }}" \
+            --repo "${{ github.repository }}" \
+            --draft=false \
+            --prerelease
