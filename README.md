@@ -22,19 +22,29 @@ again.
 
 ## Install
 
-### From a release (recommended)
+### From the Chrome Web Store (recommended)
+
+1. Open the extension on the [**Chrome Web Store**](https://chromewebstore.google.com/detail/path-of-exile-trade-auto/okkmlbcmgdammcaecnoileopdeckhopb).
+2. Click **Add to Chrome**. Edge users: allow extensions from other stores when Edge asks, then click **Add to Chrome**.
+3. *(Optional)* Click the puzzle-piece icon in the toolbar and **pin** "Path of Exile Trade Auto-Clicker" so it stays visible.
+
+Updates install automatically.
+
+### From a release (manual)
+
+Use this to run a build that is not on the store yet, such as a pre-release.
 
 1. Go to the [**Releases**](../../releases) page and download the latest `poe-trade-alert-<version>.zip`.
 2. **Unzip** it to a permanent folder (e.g. `C:\Tools\poe-trade-alert`). Don't delete this folder later. Chrome loads the extension from it every launch.
 3. Open `chrome://extensions` (or `edge://extensions`).
 4. Turn on **Developer mode** (top-right toggle).
 5. Click **Load unpacked** and select the unzipped folder.
-6. *(Optional)* Click the puzzle-piece icon in the toolbar and **pin** "Hideout Auto-Clicker" so it stays visible.
 
-> **Why unpacked?** Chrome blocks self-hosted `.crx` installs on Windows/macOS,
-> so a downloaded zip loaded via Developer mode is the supported way to install
-> outside the Web Store. Updating = download the new zip, replace the folder
-> contents, and hit the refresh icon on the extension card.
+> Chrome blocks self-hosted `.crx` installs on Windows/macOS, so outside the
+> store a zip loaded via Developer mode is the only route. Manual installs do
+> not auto-update: download the new zip, replace the folder contents, and hit
+> the refresh icon on the extension card. Remove the store version first so the
+> two copies don't both act on the trade page.
 
 ## Usage
 
@@ -97,6 +107,10 @@ Pushing a Conventional Commit (`feat:` / `fix:`) to `master` triggers
 publishes a **pre-release**. Run the **Promote Release** workflow to flip the
 latest pre-release to a stable release.
 
+The same zip is what gets uploaded to the Chrome Web Store developer dashboard.
+Store listing copy, image assets and privacy-tab answers live in
+`docs/store/listing.md`; the privacy policy is `docs/PRIVACY.md`.
+
 ### Debugging
 
 - **Content script**: open the trade page, F12, look for `[POE Extension]` logs.
@@ -119,6 +133,8 @@ poe-live-trade-extension/
 ├── scripts/               # launch.js, screenshots.js, make-icons.js
 ├── tests/                 # Playwright E2E + fixtures/harness
 ├── docs/screenshots/      # README images
+├── docs/store/            # Chrome Web Store listing copy + assets
+├── docs/PRIVACY.md        # Privacy policy
 └── .github/workflows/     # Release pipeline
 ```
 
@@ -137,6 +153,15 @@ poe-live-trade-extension/
 - Alert history capped at 20 entries.
 
 ## Version history
+
+### v1.3.1
+- Published on the [Chrome Web Store](https://chromewebstore.google.com/detail/path-of-exile-trade-auto/okkmlbcmgdammcaecnoileopdeckhopb).
+- Fixed the release pipeline so the zip is attached again (releases are now immutable, so it drafts, uploads, then publishes).
+
+### v1.3.0
+- Prepared for the Chrome Web Store: renamed to "Path of Exile Trade Auto-Clicker", description leads with "Unofficial."
+- Dropped the `file:///*` host permission.
+- Replaced the Grinding Gear Games logo with generated icons (`scripts/make-icons.js`). Package shrank from 199KB to 55KB.
 
 ### v1.2.0
 - Added GitHub Actions release pipeline (clean, Web-Store-ready zip) and Promote Release workflow.
